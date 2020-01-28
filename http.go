@@ -33,6 +33,8 @@ type httpTransport struct {
 }
 
 // NewHTTPTransport 声明基于 HTTP 的 Transport 实例
+//
+// https://www.simple-is-better.org/json-rpc/transport_http.html
 func NewHTTPTransport(in io.Reader, out io.Writer) Transport {
 	return &httpTransport{
 		in:  in,

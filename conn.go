@@ -128,7 +128,7 @@ func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
 		return NewError(CodeInvalidParams, "id not equal")
 	}
 
-	return json.Unmarshal([]byte(*resp.Result), out)
+	return json.Unmarshal(*resp.Result, out)
 }
 
 // Serve 作为服务端运行
@@ -160,7 +160,7 @@ func (conn *Conn) serve() error {
 
 	notify := reflect.ValueOf(req.ID == "")
 	in := reflect.New(h.in)
-	if err := json.Unmarshal([]byte(*req.Params), in.Interface()); err != nil {
+	if err := json.Unmarshal(*req.Params, in.Interface()); err != nil {
 		return conn.writeError("", CodeParseError, err, nil)
 	}
 
@@ -191,7 +191,7 @@ func (conn *Conn) writeError(id string, code int, err error, data interface{}) e
 	if err2, ok := err.(*Error); ok {
 		resp.Error = err2
 	} else {
-		resp.Error = NewError(code, err.Error())
+		resp.Error = NewErrorWithData(code, err.Error(), data)
 	}
 
 	return conn.transport.Write(resp)
