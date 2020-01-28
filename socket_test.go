@@ -2,4 +2,4 @@
 
 package jsonrpc
 
-var _ Transport = &netTransport{}
+var _ Transport = &socketTransport{}

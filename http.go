@@ -3,7 +3,7 @@
 package jsonrpc
 
 import (
-    "bufio"
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,7 +32,7 @@ type httpTransport struct {
 	outMux sync.Mutex
 }
 
-// NewHTTPTransport 声明基于 HTTP 的 transport 实例
+// NewHTTPTransport 声明基于 HTTP 的 Transport 实例
 func NewHTTPTransport(in io.Reader, out io.Writer) Transport {
 	return &httpTransport{
 		in:  in,

@@ -25,8 +25,11 @@ const (
 
 // Transport 用于操作 JSON RPC 的传输层接口
 type Transport interface {
-    Read(interface{}) error
-    Write(interface{}) error
+	// 从转输层读取内容并转换成对象 v
+	Read(v interface{}) error
+
+	// 将对象 v 写入传输层
+	Write(v interface{}) error
 }
 
 // Request 请求对象

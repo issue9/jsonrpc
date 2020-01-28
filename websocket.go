@@ -3,14 +3,14 @@
 package jsonrpc
 
 import (
-    "github.com/gorilla/websocket"
+	"github.com/gorilla/websocket"
 )
 
 type websocketTransport struct {
 	conn *websocket.Conn
 }
 
-// NewWebsocketTransport 声明基于 websocket 的 transport 实例
+// NewWebsocketTransport 声明基于 websocket 的 Transport 实例
 func NewWebsocketTransport(conn *websocket.Conn) Transport {
 	return &websocketTransport{conn: conn}
 }
