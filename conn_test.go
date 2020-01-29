@@ -8,6 +8,20 @@ import (
 	"github.com/issue9/assert"
 )
 
+// 用于测试的数据类型
+type (
+	inType struct {
+		Last  string `json:"last"`
+		First string `json:"first"`
+		Age   int
+	}
+
+	outType struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}
+)
+
 func TestNewHandler(t *testing.T) {
 	a := assert.New(t)
 

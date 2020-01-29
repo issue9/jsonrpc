@@ -28,6 +28,9 @@ type handler struct {
 }
 
 // NewConn 声明新的 Conn 实例
+//
+// errlog 表示在 serveHTTP 和 Serve 中部分不会中断执行的错误输出。
+// 如果为空，则不会输出这些错误。
 func NewConn(errlog *log.Logger) *Conn {
 	return &Conn{
 		errlog:  errlog,
@@ -38,7 +41,7 @@ func NewConn(errlog *log.Logger) *Conn {
 // Register 注册一个新的服务
 //
 // f 为处理服务的函数，其原始为以下方式：
-//  func(notify bool, params, result interface{}) error
+//  func(notify bool, params, result pointer) error
 // 其中 notify 表示是否为通知类型的请求；params 为用户请求的对象；
 // result 为返回给用户的数据对象；error 则为处理出错是的返回值。
 // params 和 result 必须为指针类型。
@@ -178,7 +181,7 @@ func (conn *Conn) serve(t Transport) error {
 		return conn.writeError(t, "", CodeInternalError, errVal[0].Interface().(error), nil)
 	}
 
-	data, err := json.Marshal(out)
+	data, err := json.Marshal(out.Interface())
 	if err != nil {
 		return err
 	}

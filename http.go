@@ -3,13 +3,17 @@
 package jsonrpc
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/issue9/autoinc"
 )
 
 // 一些错误定义
@@ -25,10 +29,80 @@ const (
 	mimetype      = "application/json"
 )
 
+// HTTPClient http 的客户端
+type HTTPClient struct {
+	autoinc *autoinc.AutoInc
+	path    string
+}
+
 type httpTransport struct {
 	r    *http.Request
 	w    http.ResponseWriter
 	wMux sync.Mutex
+}
+
+// NewHTTPClient 声明新的 HTTPClient 对象
+func NewHTTPClient(path string) *HTTPClient {
+	return &HTTPClient{
+		autoinc: autoinc.New(0, 1, 100),
+		path:    path,
+	}
+}
+
+// Notify 请求 JSON RPC 服务端
+func (client *HTTPClient) Notify(method string, params interface{}) error {
+	return client.request(method, true, params, nil)
+}
+
+// Request 请求 JSON RPC 服务端
+func (client *HTTPClient) Request(method string, params, result interface{}) error {
+	return client.request(method, false, params, result)
+}
+
+func (client *HTTPClient) request(method string, notify bool, params, result interface{}) error {
+	data, err := json.Marshal(params)
+	if err != nil {
+		return err
+	}
+
+	req := &Request{
+		Version: Version,
+		Method:  method,
+		Params:  (*json.RawMessage)(&data),
+	}
+	if !notify {
+		req.ID = strconv.FormatInt(client.autoinc.MustID(), 10)
+	}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(client.path, mimetype, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+
+	if notify {
+		return nil
+	}
+
+	data, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	r := &Response{}
+	if err = json.Unmarshal(data, r); err != nil {
+		return err
+	}
+
+	if r.Error != nil {
+		return r.Error
+	}
+	return json.Unmarshal(*r.Result, result)
 }
 
 // NewHTTPTransport 声明基于 HTTP 的 Transport 实例
