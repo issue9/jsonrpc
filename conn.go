@@ -6,6 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
+	"net/http"
 	"reflect"
 	"strconv"
 	"sync"
@@ -15,9 +17,9 @@ import (
 
 // Conn 连接对象，json-rpc 客户端和服务端是对等的，两者都使用 conn 初始化。
 type Conn struct {
-	transport Transport
-	servers   sync.Map
-	autoinc   *autoinc.AutoInc
+	errlog  *log.Logger
+	servers sync.Map
+	autoinc *autoinc.AutoInc
 }
 
 type handler struct {
@@ -26,10 +28,10 @@ type handler struct {
 }
 
 // NewConn 声明新的 Conn 实例
-func NewConn(t Transport) *Conn {
+func NewConn(errlog *log.Logger) *Conn {
 	return &Conn{
-		transport: t,
-		autoinc:   autoinc.New(0, 1, 1000),
+		errlog:  errlog,
+		autoinc: autoinc.New(0, 1, 1000),
 	}
 }
 
@@ -83,16 +85,16 @@ func newHandler(f interface{}) *handler {
 }
 
 // Notify 发送通知信息
-func (conn *Conn) Notify(method string, in interface{}) error {
-	return conn.send(true, method, in, nil)
+func (conn *Conn) Notify(t Transport, method string, in interface{}) error {
+	return conn.send(t, true, method, in, nil)
 }
 
 // Send 发送请求内容，并获取其返回的数据
-func (conn *Conn) Send(method string, in, out interface{}) error {
-	return conn.send(false, method, in, out)
+func (conn *Conn) Send(t Transport, method string, in, out interface{}) error {
+	return conn.send(t, false, method, in, out)
 }
 
-func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
+func (conn *Conn) send(t Transport, notify bool, method string, in, out interface{}) error {
 	data, err := json.Marshal(in)
 	if err != nil {
 		return err
@@ -107,7 +109,7 @@ func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
 		req.ID = strconv.FormatInt(conn.autoinc.MustID(), 10)
 	}
 
-	if err = conn.transport.Write(req); err != nil {
+	if err = t.Write(req); err != nil {
 		return err
 	}
 
@@ -116,7 +118,7 @@ func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
 	}
 
 	resp := &Response{}
-	if err = conn.transport.Read(resp); err != nil {
+	if err = t.Read(resp); err != nil {
 		return err
 	}
 
@@ -132,41 +134,48 @@ func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
 }
 
 // Serve 作为服务端运行
-func (conn *Conn) Serve(ctx context.Context) error {
+func (conn *Conn) Serve(ctx context.Context, t Transport) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		default:
-			if err := conn.serve(); err != nil {
-				return err
+			if err := conn.serve(t); err != nil && conn.errlog != nil {
+				conn.errlog.Println(err)
 			}
 		}
 	}
 }
 
+func (conn *Conn) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	t := NewHTTPTransport(w, r)
+	if err := conn.serve(t); err != nil && conn.errlog != nil {
+		conn.errlog.Println(err)
+	}
+}
+
 // 作为服务端，根据参数查找和执行服务
-func (conn *Conn) serve() error {
+func (conn *Conn) serve(t Transport) error {
 	req := &Request{}
-	if err := conn.transport.Read(req); err != nil {
-		return conn.writeError("", CodeParseError, err, nil)
+	if err := t.Read(req); err != nil {
+		return conn.writeError(t, "", CodeParseError, err, nil)
 	}
 
 	f, found := conn.servers.Load(req.Method)
 	if !found {
-		return conn.writeError("", CodeMethodNotFound, errors.New("method not found"), nil)
+		return conn.writeError(t, "", CodeMethodNotFound, errors.New("method not found"), nil)
 	}
 	h := f.(*handler)
 
 	notify := reflect.ValueOf(req.ID == "")
 	in := reflect.New(h.in)
 	if err := json.Unmarshal(*req.Params, in.Interface()); err != nil {
-		return conn.writeError("", CodeParseError, err, nil)
+		return conn.writeError(t, "", CodeParseError, err, nil)
 	}
 
 	out := reflect.New(h.out)
 	if errVal := h.f.Call([]reflect.Value{notify, in, out}); !errVal[0].IsNil() {
-		return conn.writeError("", CodeInternalError, errVal[0].Interface().(error), nil)
+		return conn.writeError(t, "", CodeInternalError, errVal[0].Interface().(error), nil)
 	}
 
 	data, err := json.Marshal(out)
@@ -179,10 +188,10 @@ func (conn *Conn) serve() error {
 		Result:  (*json.RawMessage)(&data),
 		ID:      req.ID,
 	}
-	return conn.transport.Write(resp)
+	return t.Write(resp)
 }
 
-func (conn *Conn) writeError(id string, code int, err error, data interface{}) error {
+func (conn *Conn) writeError(t Transport, id string, code int, err error, data interface{}) error {
 	resp := &Response{
 		ID:      id,
 		Version: Version,
@@ -194,5 +203,5 @@ func (conn *Conn) writeError(id string, code int, err error, data interface{}) e
 		resp.Error = NewErrorWithData(code, err.Error(), data)
 	}
 
-	return conn.transport.Write(resp)
+	return t.Write(resp)
 }
