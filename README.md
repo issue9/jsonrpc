@@ -4,7 +4,29 @@ jsonrpc
 [![license](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://opensource.org/licenses/MIT)
 ======
 
-JSON RPC 2.0 的实现
+JSON RPC 2.0 的实现，目前实现了对以下传输层的接口：
+
+- socket, net 包中所有支持 Conn 接口的实现；
+- websocket, 采用了 github.com/gorilla/websocket 作为底层调用；
+- HTTP 普通的 HTTP 请求方式；
+
+### Socket
+
+```go
+conn := NewConn(nil)
+listen, err := net.Listen("tcp", ":8080")
+for {
+    c, err := listen.Accept()
+    conn.Serve(ctx, NewSocketTransport(c))
+}
+```
+
+### HTTP
+
+```go
+conn := NewConn(nil)
+http.Handle(conn)
+```
 
 安装
 ----
