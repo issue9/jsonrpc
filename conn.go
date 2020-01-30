@@ -103,7 +103,7 @@ func (conn *Conn) send(t Transport, notify bool, method string, in, out interfac
 		return err
 	}
 
-	req := &Request{
+	req := &request{
 		Version: Version,
 		Method:  method,
 		Params:  (*json.RawMessage)(&data),
@@ -120,7 +120,7 @@ func (conn *Conn) send(t Transport, notify bool, method string, in, out interfac
 		return nil
 	}
 
-	resp := &Response{}
+	resp := &response{}
 	if err = t.Read(resp); err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (conn *Conn) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // 作为服务端，根据参数查找和执行服务
 func (conn *Conn) serve(t Transport) error {
-	req := &Request{}
+	req := &request{}
 	if err := t.Read(req); err != nil {
 		return conn.writeError(t, "", CodeParseError, err, nil)
 	}
@@ -194,7 +194,7 @@ func (conn *Conn) serve(t Transport) error {
 		return err
 	}
 
-	resp := &Response{
+	resp := &response{
 		Version: Version,
 		Result:  (*json.RawMessage)(&data),
 		ID:      req.ID,
@@ -203,7 +203,7 @@ func (conn *Conn) serve(t Transport) error {
 }
 
 func (conn *Conn) writeError(t Transport, id string, code int, err error, data interface{}) error {
-	resp := &Response{
+	resp := &response{
 		ID:      id,
 		Version: Version,
 	}

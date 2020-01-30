@@ -32,8 +32,7 @@ type Transport interface {
 	Write(v interface{}) error
 }
 
-// Request 请求对象
-type Request struct {
+type request struct {
 	// 指定 JSON-RPC 协议版本的字符串
 	Version string `json:"jsonrpc"`
 
@@ -51,8 +50,7 @@ type Request struct {
 	Params *json.RawMessage `json:"params,omitempty"`
 }
 
-// Response 响应对象
-type Response struct {
+type response struct {
 	// 指定 JSON-RPC 协议版本的字符串
 	Version string `json:"jsonrpc"`
 
@@ -66,7 +64,7 @@ type Response struct {
 	ID string `json:"id"`
 }
 
-// Error 错误类型
+// Error JSON-RPC 返回的错误类型
 type Error struct {
 	// 错误代码
 	Code int `json:"code"`

@@ -65,7 +65,7 @@ func (client *HTTPClient) request(method string, notify bool, params, result int
 		return err
 	}
 
-	req := &Request{
+	req := &request{
 		Version: Version,
 		Method:  method,
 		Params:  (*json.RawMessage)(&data),
@@ -94,7 +94,7 @@ func (client *HTTPClient) request(method string, notify bool, params, result int
 	}
 	defer resp.Body.Close()
 
-	r := &Response{}
+	r := &response{}
 	if err = json.Unmarshal(data, r); err != nil {
 		return err
 	}
