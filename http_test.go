@@ -11,26 +11,9 @@ import (
 
 var _ Transport = &httpTransport{}
 
-var (
-	f1 = func(notify bool, params *inType, result *outType) error {
-		if notify {
-			return nil
-		}
-
-		result.Name = params.First + params.Last
-		result.Age = params.Age
-		return nil
-	}
-)
-
 func TestConn_ServeHTTP(t *testing.T) {
 	a := assert.New(t)
-	conn := NewConn(nil)
-	a.NotNil(conn)
-
-	a.True(conn.Register("f1", f1))
-	a.False(conn.Register("f1", f1))
-	a.False(conn.Register("f1", f1))
+	conn := initConn(a, nil)
 
 	srv := httptest.NewServer(conn)
 	defer srv.Close()

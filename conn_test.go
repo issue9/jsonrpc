@@ -3,6 +3,7 @@
 package jsonrpc
 
 import (
+	"log"
 	"testing"
 
 	"github.com/issue9/assert"
@@ -21,6 +22,29 @@ type (
 		Age  int    `json:"age"`
 	}
 )
+
+var (
+	f1 = func(notify bool, params *inType, result *outType) error {
+		if notify {
+			return nil
+		}
+
+		result.Name = params.First + params.Last
+		result.Age = params.Age
+		return nil
+	}
+)
+
+func initConn(a *assert.Assertion, errlog *log.Logger) *Conn {
+	conn := NewConn(errlog)
+	a.NotNil(conn)
+
+	a.True(conn.Register("f1", f1))
+	a.False(conn.Register("f1", f1))
+	a.False(conn.Register("f1", f1))
+
+	return conn
+}
 
 func TestNewHandler(t *testing.T) {
 	a := assert.New(t)

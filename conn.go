@@ -34,7 +34,7 @@ type handler struct {
 func NewConn(errlog *log.Logger) *Conn {
 	return &Conn{
 		errlog:  errlog,
-		autoinc: autoinc.New(0, 1, 1000),
+		autoinc: autoinc.New(1, 1, 1000),
 	}
 }
 
@@ -137,6 +137,10 @@ func (conn *Conn) send(t Transport, notify bool, method string, in, out interfac
 }
 
 // Serve 作为服务端运行
+//
+// t 表示的是传输层的实例；
+// ctx 可以用于中断当前的服务。但是需要注意，t 的 Read 和 Write
+// 也有可能会阻塞整个服务，想要让 ctx 的取消启作用，还必须要有一定的机制从 Transport 中退出。
 func (conn *Conn) Serve(ctx context.Context, t Transport) error {
 	for {
 		select {
@@ -170,15 +174,19 @@ func (conn *Conn) serve(t Transport) error {
 	}
 	h := f.(*handler)
 
-	notify := reflect.ValueOf(req.ID == "")
+	notify := req.ID == ""
 	in := reflect.New(h.in)
 	if err := json.Unmarshal(*req.Params, in.Interface()); err != nil {
 		return conn.writeError(t, "", CodeParseError, err, nil)
 	}
 
 	out := reflect.New(h.out)
-	if errVal := h.f.Call([]reflect.Value{notify, in, out}); !errVal[0].IsNil() {
+	if errVal := h.f.Call([]reflect.Value{reflect.ValueOf(notify), in, out}); !errVal[0].IsNil() {
 		return conn.writeError(t, "", CodeInternalError, errVal[0].Interface().(error), nil)
+	}
+
+	if notify {
+		return nil
 	}
 
 	data, err := json.Marshal(out.Interface())
