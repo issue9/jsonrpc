@@ -46,6 +46,37 @@ func initConn(a *assert.Assertion, errlog *log.Logger) *Conn {
 	return conn
 }
 
+func TestConn_Registers(t *testing.T) {
+	a := assert.New(t)
+	conn := NewConn(nil)
+	a.NotError(conn)
+
+	a.NotPanic(func() {
+		conn.Registers(map[string]interface{}{
+			"f1": f1,
+			"f2": f1,
+		})
+	})
+
+	conn = NewConn(nil)
+	a.NotError(conn)
+	a.Panic(func() {
+		conn.Registers(map[string]interface{}{
+			"f1": f1,
+			"f2": initConn, // 签名不正确
+		})
+	})
+
+	conn = NewConn(nil)
+	a.NotError(conn)
+	a.Panic(func() {
+		a.True(conn.Register("f1", f1))
+		conn.Registers(map[string]interface{}{
+			"f1": f1, // 重名
+		})
+	})
+}
+
 func TestNewHandler(t *testing.T) {
 	a := assert.New(t)
 

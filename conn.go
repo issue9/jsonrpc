@@ -69,7 +69,7 @@ func (conn *Conn) Exists(method string) bool {
 // 如果已经存在相同的方法名，则会直接 panic
 func (conn *Conn) Registers(methods map[string]interface{}) {
 	for method, f := range methods {
-		if conn.Register(method, f) {
+		if !conn.Register(method, f) {
 			panic("已经存在相同的方法：" + method)
 		}
 	}
