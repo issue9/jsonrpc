@@ -96,7 +96,7 @@ type response struct {
 	Error *Error `json:"error,omitempty"`
 
 	// ID 返回请求端的 ID，如果检查 ID 失败时，返回空值
-	ID *requestID `json:"id"`
+	ID *requestID `json:"id,omitempty"`
 }
 
 // Error JSON-RPC 返回的错误类型
