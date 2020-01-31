@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"reflect"
-	"strconv"
 	"sync"
 
 	"github.com/issue9/autoinc"
@@ -128,7 +127,7 @@ func (conn *Conn) send(t Transport, notify bool, method string, in, out interfac
 		Params:  (*json.RawMessage)(&data),
 	}
 	if !notify {
-		req.ID = strconv.FormatInt(conn.autoinc.MustID(), 10)
+		req.ID = &requestID{isNumber: true, number: conn.autoinc.MustID()}
 	}
 
 	if err = t.Write(req); err != nil {
@@ -148,7 +147,7 @@ func (conn *Conn) send(t Transport, notify bool, method string, in, out interfac
 		return resp.Error
 	}
 
-	if req.ID != resp.ID {
+	if !req.ID.equal(resp.ID) {
 		return NewError(CodeInvalidParams, "id not equal")
 	}
 
@@ -184,24 +183,24 @@ func (conn *Conn) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (conn *Conn) serve(t Transport) error {
 	req := &request{}
 	if err := t.Read(req); err != nil {
-		return conn.writeError(t, "", CodeParseError, err, nil)
+		return conn.writeError(t, CodeParseError, err, nil)
 	}
 
 	f, found := conn.servers.Load(req.Method)
 	if !found {
-		return conn.writeError(t, "", CodeMethodNotFound, errors.New("method not found"), nil)
+		return conn.writeError(t, CodeMethodNotFound, errors.New("method not found"), nil)
 	}
 	h := f.(*handler)
 
-	notify := req.ID == ""
+	notify := req.ID == nil
 	in := reflect.New(h.in)
 	if err := json.Unmarshal(*req.Params, in.Interface()); err != nil {
-		return conn.writeError(t, "", CodeParseError, err, nil)
+		return conn.writeError(t, CodeParseError, err, nil)
 	}
 
 	out := reflect.New(h.out)
 	if errVal := h.f.Call([]reflect.Value{reflect.ValueOf(notify), in, out}); !errVal[0].IsNil() {
-		return conn.writeError(t, "", CodeInternalError, errVal[0].Interface().(error), nil)
+		return conn.writeError(t, CodeInternalError, errVal[0].Interface().(error), nil)
 	}
 
 	if notify {
@@ -221,9 +220,8 @@ func (conn *Conn) serve(t Transport) error {
 	return t.Write(resp)
 }
 
-func (conn *Conn) writeError(t Transport, id string, code int, err error, data interface{}) error {
+func (conn *Conn) writeError(t Transport, code int, err error, data interface{}) error {
 	resp := &response{
-		ID:      id,
 		Version: Version,
 	}
 

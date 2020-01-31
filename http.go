@@ -71,7 +71,7 @@ func (client *HTTPClient) request(method string, notify bool, params, result int
 		Params:  (*json.RawMessage)(&data),
 	}
 	if !notify {
-		req.ID = strconv.FormatInt(client.autoinc.MustID(), 10)
+		req.ID = &requestID{isNumber: true, number: client.autoinc.MustID()}
 	}
 
 	body, err := json.Marshal(req)
