@@ -47,13 +47,32 @@ func NewConn(errlog *log.Logger) *Conn {
 // params 和 result 必须为指针类型。
 //
 // 返回值表示是否添加成功，在已经存在相同值时，会添加失败。
+//
+// NOTE: 如果 f 的签名不正确，则会直接 panic
 func (conn *Conn) Register(method string, f interface{}) bool {
-	if _, found := conn.servers.Load(method); found {
+	if conn.Exists(method) {
 		return false
 	}
 
 	conn.servers.Store(method, newHandler(f))
 	return true
+}
+
+// Exists 是否已经存在相同的方法名
+func (conn *Conn) Exists(method string) bool {
+	_, found := conn.servers.Load(method)
+	return found
+}
+
+// Registers 注册多个服务方法
+//
+// 如果已经存在相同的方法名，则会直接 panic
+func (conn *Conn) Registers(methods map[string]interface{}) {
+	for method, f := range methods {
+		if conn.Register(method, f) {
+			panic("已经存在相同的方法：" + method)
+		}
+	}
 }
 
 var errType = reflect.TypeOf((*error)(nil)).Elem()
