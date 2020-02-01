@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -92,7 +93,11 @@ func (client *HTTPClient) request(method string, notify bool, params, result int
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err1 := resp.Body.Close(); err != nil {
+			err = fmt.Errorf("在抛出错误 %s 时再次发生错误 %w", err.Error(), err1)
+		}
+	}()
 
 	r := &response{}
 	if err = json.Unmarshal(data, r); err != nil {
