@@ -14,7 +14,9 @@ import (
 	"github.com/issue9/autoinc"
 )
 
-// Conn 连接对象，json-rpc 客户端和服务端是对等的，两者都使用 conn 初始化。
+// Conn JSON RPC 连接对象
+//
+// json-rpc 客户端和服务端是对等的，两者都使用 conn 初始化。
 type Conn struct {
 	errlog  *log.Logger
 	servers sync.Map
@@ -39,7 +41,7 @@ func NewConn(errlog *log.Logger) *Conn {
 
 // Register 注册一个新的服务
 //
-// f 为处理服务的函数，其原始为以下方式：
+// f 为处理服务的函数，其原型为以下方式：
 //  func(notify bool, params, result pointer) error
 // 其中 notify 表示是否为通知类型的请求；params 为用户请求的对象；
 // result 为返回给用户的数据对象；error 则为处理出错是的返回值。
@@ -106,11 +108,15 @@ func newHandler(f interface{}) *handler {
 }
 
 // Notify 发送通知信息
+//
+// 仅发送 in 至服务端，会忽略服务端返回的信息。
 func (conn *Conn) Notify(t Transport, method string, in interface{}) error {
 	return conn.send(t, true, method, in, nil)
 }
 
-// Send 发送请求内容，并获取其返回的数据
+// Send 发送请求内容
+//
+// 发送数据 in 至服务，并获取返回的内容填充至 out。
 func (conn *Conn) Send(t Transport, method string, in, out interface{}) error {
 	return conn.send(t, false, method, in, out)
 }

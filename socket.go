@@ -16,7 +16,7 @@ type socketTransport struct {
 	outMux sync.Mutex
 }
 
-// NewSocketTransport 声明基于网络通讯的 Transport 实例
+// NewSocketTransport 声明基于 socket 的 Transport 实例
 //
 // HTTP 和 websocket 有专门的实现方法
 func NewSocketTransport(conn net.Conn) Transport {

@@ -120,7 +120,6 @@ func NewHTTPTransport(w http.ResponseWriter, r *http.Request) Transport {
 	}
 }
 
-// Read 读取内容，先验证报头，并返回实际 body 的内容
 func (s *httpTransport) Read(v interface{}) error {
 	if err := validContentType(s.r.Header.Get(contentType)); err != nil {
 		return err
