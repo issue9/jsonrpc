@@ -54,8 +54,8 @@ func (client *HTTPClient) Notify(method string, params interface{}) error {
 	return client.request(method, true, params, nil)
 }
 
-// Request 请求 JSON RPC 服务端
-func (client *HTTPClient) Request(method string, params, result interface{}) error {
+// Send 请求 JSON RPC 服务端
+func (client *HTTPClient) Send(method string, params, result interface{}) error {
 	return client.request(method, false, params, result)
 }
 

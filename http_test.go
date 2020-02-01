@@ -23,10 +23,10 @@ func TestConn_ServeHTTP(t *testing.T) {
 	a.NotError(client.Notify("f2", &inType{})) // notify 不返回错误，即使找不到服务
 
 	out := &outType{}
-	a.NotError(client.Request("f1", &inType{Age: 18, First: "f", Last: "l"}, out))
+	a.NotError(client.Send("f1", &inType{Age: 18, First: "f", Last: "l"}, out))
 	a.Equal(out.Age, 18).Equal(out.Name, "fl")
 	out = &outType{}
-	a.Error(client.Request("f2", &inType{Age: 18}, out)) // 不存在的服务名称
+	a.Error(client.Send("f2", &inType{Age: 18}, out)) // 不存在的服务名称
 	a.Equal(out.Age, 0)
 }
 
