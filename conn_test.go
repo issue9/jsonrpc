@@ -3,6 +3,7 @@
 package jsonrpc
 
 import (
+	"errors"
 	"log"
 	"testing"
 
@@ -33,6 +34,16 @@ var (
 		result.Age = params.Age
 		return nil
 	}
+
+	// 抛出 Error
+	f2 = func(notify bool, params *inType, result *outType) error {
+		return NewError(CodeInvalidParams, "invalid params")
+	}
+
+	// 抛出普通错误
+	f3 = func(notify bool, params *inType, result *outType) error {
+		return errors.New("error")
+	}
 )
 
 func initConn(a *assert.Assertion, errlog *log.Logger) *Conn {
@@ -40,8 +51,10 @@ func initConn(a *assert.Assertion, errlog *log.Logger) *Conn {
 	a.NotNil(conn)
 
 	a.True(conn.Register("f1", f1))
-	a.False(conn.Register("f1", f1))
-	a.False(conn.Register("f1", f1))
+	a.True(conn.Register("f2", f2))
+	a.True(conn.Register("f3", f3))
+
+	a.False(conn.Register("f3", f3))
 
 	return conn
 }
@@ -54,7 +67,7 @@ func TestConn_Registers(t *testing.T) {
 	a.NotPanic(func() {
 		conn.Registers(map[string]interface{}{
 			"f1": f1,
-			"f2": f1,
+			"f2": f2,
 		})
 	})
 

@@ -45,6 +45,18 @@ func TestConn_Serve(t *testing.T) {
 	err = client.Send(NewSocketTransport(dialConn), "f1", &inType{Age: 19, Last: "l"}, out)
 	a.NotError(err).Equal(out.Age, 19).Equal(out.Name, "l")
 
+	// 检测抛出错误是否正确
+	out = &outType{}
+	err = client.Send(NewSocketTransport(dialConn), "f2", &inType{Age: 19, Last: "l"}, out)
+	err1, ok := err.(*Error)
+	a.True(ok).Equal(err1.Code, CodeInvalidParams) // 由函数 f2 抛出的错误 *Error
+
+	// 检测抛出错误是否正确
+	out = &outType{}
+	err = client.Send(NewSocketTransport(dialConn), "f3", &inType{Age: 19, Last: "l"}, out)
+	err1, ok = err.(*Error)
+	a.True(ok).Equal(err1.Code, CodeInternalError) // 由函数 f3 抛出的普通错误
+
 	cancel()
 	// 触发 ctx 的退出事件
 	err = client.Notify(NewSocketTransport(dialConn), "f1", &inType{})
