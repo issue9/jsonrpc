@@ -6,8 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-
-	"github.com/issue9/autoinc"
 )
 
 // Conn JSON RPC 连接对象
@@ -16,7 +14,6 @@ import (
 type Conn struct {
 	server    *Server
 	errlog    *log.Logger
-	autoinc   *autoinc.AutoInc
 	transport Transport
 }
 
@@ -30,7 +27,6 @@ func (s *Server) NewConn(t Transport, errlog *log.Logger) *Conn {
 		server:    s,
 		transport: t,
 		errlog:    errlog,
-		autoinc:   autoinc.New(1, 1, 1000),
 	}
 }
 
@@ -60,7 +56,7 @@ func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
 		Params:  (*json.RawMessage)(&data),
 	}
 	if !notify {
-		req.ID = &requestID{isNumber: true, number: conn.autoinc.MustID()}
+		req.ID = conn.server.id()
 	}
 
 	if err = conn.transport.Write(req); err != nil {

@@ -7,11 +7,14 @@ import (
 	"errors"
 	"reflect"
 	"sync"
+
+	"github.com/issue9/autoinc"
 )
 
 // Server JSON RPC 服务实例
 type Server struct {
 	servers sync.Map
+	autoinc *autoinc.AutoInc
 }
 
 type handler struct {
@@ -21,7 +24,16 @@ type handler struct {
 
 // NewServer 新的 Server 实例
 func NewServer() *Server {
-	return &Server{}
+	return &Server{
+		autoinc: autoinc.New(0, 1, 200),
+	}
+}
+
+func (s *Server) id() *requestID {
+	return &requestID{
+		isNumber: true,
+		number:   s.autoinc.MustID(),
+	}
 }
 
 // Register 注册一个新的服务

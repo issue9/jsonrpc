@@ -33,15 +33,14 @@ const (
 
 // HTTPServer 表示 json rpc 的 HTTP 服务端中间件
 type HTTPServer struct {
-	server  *Server
-	errlog  *log.Logger
-	autoinc *autoinc.AutoInc
+	server *Server
+	errlog *log.Logger
 }
 
 // HTTPClient http 的客户端
 type HTTPClient struct {
-	autoinc *autoinc.AutoInc
 	url     string
+	autoinc *autoinc.AutoInc
 }
 
 type httpTransport struct {
@@ -53,17 +52,16 @@ type httpTransport struct {
 // NewHTTPClient 声明新的 HTTPClient 对象
 func NewHTTPClient(url string) *HTTPClient {
 	return &HTTPClient{
-		autoinc: autoinc.New(0, 1, 100),
 		url:     url,
+		autoinc: autoinc.New(0, 1, 1000),
 	}
 }
 
 // NewHTTPServer 声明 HTTP 服务端中间件
 func (s *Server) NewHTTPServer(errlog *log.Logger) *HTTPServer {
 	return &HTTPServer{
-		server:  s,
-		errlog:  errlog,
-		autoinc: autoinc.New(0, 1, 100),
+		server: s,
+		errlog: errlog,
 	}
 }
 
