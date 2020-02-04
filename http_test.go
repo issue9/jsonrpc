@@ -11,9 +11,12 @@ import (
 
 var _ Transport = &httpTransport{}
 
-func TestConn_ServeHTTP(t *testing.T) {
+func TestHTTPServer_ServeHTTP(t *testing.T) {
 	a := assert.New(t)
-	conn := initConn(a, nil)
+	s := initServer(a)
+	a.NotNil(s)
+
+	conn := s.NewHTTPServer(nil)
 
 	srv := httptest.NewServer(conn)
 	defer srv.Close()

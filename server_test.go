@@ -4,7 +4,6 @@ package jsonrpc
 
 import (
 	"errors"
-	"log"
 	"testing"
 
 	"github.com/issue9/assert"
@@ -46,45 +45,45 @@ var (
 	}
 )
 
-func initConn(a *assert.Assertion, errlog *log.Logger) *Conn {
-	conn := NewConn(errlog)
-	a.NotNil(conn)
+func initServer(a *assert.Assertion) *Server {
+	srv := NewServer()
+	a.NotNil(srv)
 
-	a.True(conn.Register("f1", f1))
-	a.True(conn.Register("f2", f2))
-	a.True(conn.Register("f3", f3))
+	a.True(srv.Register("f1", f1))
+	a.True(srv.Register("f2", f2))
+	a.True(srv.Register("f3", f3))
 
-	a.False(conn.Register("f3", f3))
+	a.False(srv.Register("f3", f3))
 
-	return conn
+	return srv
 }
 
-func TestConn_Registers(t *testing.T) {
+func TestServer_Registers(t *testing.T) {
 	a := assert.New(t)
-	conn := NewConn(nil)
-	a.NotError(conn)
+	srv := NewServer()
+	a.NotError(srv)
 
 	a.NotPanic(func() {
-		conn.Registers(map[string]interface{}{
+		srv.Registers(map[string]interface{}{
 			"f1": f1,
 			"f2": f2,
 		})
 	})
 
-	conn = NewConn(nil)
-	a.NotError(conn)
+	srv = NewServer()
+	a.NotError(srv)
 	a.Panic(func() {
-		conn.Registers(map[string]interface{}{
+		srv.Registers(map[string]interface{}{
 			"f1": f1,
-			"f2": initConn, // 签名不正确
+			"f2": initServer, // 签名不正确
 		})
 	})
 
-	conn = NewConn(nil)
-	a.NotError(conn)
+	srv = NewServer()
+	a.NotError(srv)
 	a.Panic(func() {
-		a.True(conn.Register("f1", f1))
-		conn.Registers(map[string]interface{}{
+		a.True(srv.Register("f1", f1))
+		srv.Registers(map[string]interface{}{
 			"f1": f1, // 重名
 		})
 	})

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -30,6 +31,12 @@ const (
 	mimetype      = "application/json"
 )
 
+type HTTPServer struct {
+	server  *Server
+	errlog  *log.Logger
+	autoinc *autoinc.AutoInc
+}
+
 // HTTPClient http 的客户端
 type HTTPClient struct {
 	autoinc *autoinc.AutoInc
@@ -47,6 +54,21 @@ func NewHTTPClient(path string) *HTTPClient {
 	return &HTTPClient{
 		autoinc: autoinc.New(0, 1, 100),
 		path:    path,
+	}
+}
+
+func (s *Server) NewHTTPServer(errlog *log.Logger) *HTTPServer {
+	return &HTTPServer{
+		server:  s,
+		errlog:  errlog,
+		autoinc: autoinc.New(0, 1, 100),
+	}
+}
+
+func (http *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	t := NewHTTPTransport(w, r)
+	if err := http.server.serve(t); err != nil && http.errlog != nil {
+		http.errlog.Println(err)
 	}
 }
 
