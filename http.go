@@ -31,6 +31,7 @@ const (
 	mimetype      = "application/json"
 )
 
+// HTTPServer 表示 json rpc 的 HTTP 服务端中间件
 type HTTPServer struct {
 	server  *Server
 	errlog  *log.Logger
@@ -40,7 +41,7 @@ type HTTPServer struct {
 // HTTPClient http 的客户端
 type HTTPClient struct {
 	autoinc *autoinc.AutoInc
-	path    string
+	url     string
 }
 
 type httpTransport struct {
@@ -50,13 +51,14 @@ type httpTransport struct {
 }
 
 // NewHTTPClient 声明新的 HTTPClient 对象
-func NewHTTPClient(path string) *HTTPClient {
+func NewHTTPClient(url string) *HTTPClient {
 	return &HTTPClient{
 		autoinc: autoinc.New(0, 1, 100),
-		path:    path,
+		url:     url,
 	}
 }
 
+// NewHTTPServer 声明 HTTP 服务端中间件
 func (s *Server) NewHTTPServer(errlog *log.Logger) *HTTPServer {
 	return &HTTPServer{
 		server:  s,
@@ -66,7 +68,7 @@ func (s *Server) NewHTTPServer(errlog *log.Logger) *HTTPServer {
 }
 
 func (http *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	t := NewHTTPTransport(w, r)
+	t := newHTTPTransport(w, r)
 	if err := http.server.serve(t); err != nil && http.errlog != nil {
 		http.errlog.Println(err)
 	}
@@ -102,7 +104,7 @@ func (client *HTTPClient) request(method string, notify bool, params, result int
 		return err
 	}
 
-	resp, err := http.Post(client.path, mimetype, bytes.NewBuffer(body))
+	resp, err := http.Post(client.url, mimetype, bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
@@ -132,10 +134,8 @@ func (client *HTTPClient) request(method string, notify bool, params, result int
 	return json.Unmarshal(*r.Result, result)
 }
 
-// NewHTTPTransport 声明基于 HTTP 的 Transport 实例
-//
-// https://www.simple-is-better.org/json-rpc/transport_http.html
-func NewHTTPTransport(w http.ResponseWriter, r *http.Request) Transport {
+// 声明基于 HTTP 的 Transport 实例
+func newHTTPTransport(w http.ResponseWriter, r *http.Request) Transport {
 	return &httpTransport{
 		r: r,
 		w: w,
