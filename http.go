@@ -14,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/issue9/autoinc"
 )
 
 // 一些错误定义
@@ -31,16 +29,11 @@ const (
 	mimetype      = "application/json"
 )
 
-// HTTPServer 表示 json rpc 的 HTTP 服务端中间件
-type HTTPServer struct {
+// HTTPConn 表示 json rpc 的 HTTP 服务端中间件
+type HTTPConn struct {
 	server *Server
 	errlog *log.Logger
-}
-
-// HTTPClient http 的客户端
-type HTTPClient struct {
-	url     string
-	autoinc *autoinc.AutoInc
+	url    string
 }
 
 type httpTransport struct {
@@ -49,40 +42,36 @@ type httpTransport struct {
 	wMux sync.Mutex
 }
 
-// NewHTTPClient 声明新的 HTTPClient 对象
-func NewHTTPClient(url string) *HTTPClient {
-	return &HTTPClient{
-		url:     url,
-		autoinc: autoinc.New(0, 1, 1000),
-	}
-}
-
-// NewHTTPServer 声明 HTTP 服务端中间件
-func (s *Server) NewHTTPServer(errlog *log.Logger) *HTTPServer {
-	return &HTTPServer{
+// NewHTTPConn 声明 HTTP 服务端中间件
+//
+// url 表示主动请求时的 URL 地址，如果不需要，可以传递空值；
+// errlog 表示错误日志输出通道，不需要可以为空。
+func (s *Server) NewHTTPConn(url string, errlog *log.Logger) *HTTPConn {
+	return &HTTPConn{
 		server: s,
 		errlog: errlog,
+		url:    url,
 	}
 }
 
-func (http *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPConn) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := newHTTPTransport(w, r)
-	if err := http.server.serve(t); err != nil && http.errlog != nil {
-		http.errlog.Println(err)
+	if err := h.server.serve(t); err != nil && h.errlog != nil {
+		h.errlog.Println(err)
 	}
 }
 
 // Notify 请求 JSON RPC 服务端
-func (client *HTTPClient) Notify(method string, params interface{}) error {
-	return client.request(method, true, params, nil)
+func (h *HTTPConn) Notify(method string, params interface{}) error {
+	return h.request(method, true, params, nil)
 }
 
 // Send 请求 JSON RPC 服务端
-func (client *HTTPClient) Send(method string, params, result interface{}) error {
-	return client.request(method, false, params, result)
+func (h *HTTPConn) Send(method string, params, result interface{}) error {
+	return h.request(method, false, params, result)
 }
 
-func (client *HTTPClient) request(method string, notify bool, params, result interface{}) error {
+func (h *HTTPConn) request(method string, notify bool, params, result interface{}) error {
 	data, err := json.Marshal(params)
 	if err != nil {
 		return err
@@ -94,7 +83,7 @@ func (client *HTTPClient) request(method string, notify bool, params, result int
 		Params:  (*json.RawMessage)(&data),
 	}
 	if !notify {
-		req.ID = &requestID{isNumber: true, number: client.autoinc.MustID()}
+		req.ID = h.server.id()
 	}
 
 	body, err := json.Marshal(req)
@@ -102,7 +91,7 @@ func (client *HTTPClient) request(method string, notify bool, params, result int
 		return err
 	}
 
-	resp, err := http.Post(client.url, mimetype, bytes.NewBuffer(body))
+	resp, err := http.Post(h.url, mimetype, bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}

@@ -16,33 +16,33 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 	s := initServer(a)
 	a.NotNil(s)
 
-	conn := s.NewHTTPServer(nil)
+	conn := s.NewHTTPConn("", nil)
 
 	srv := httptest.NewServer(conn)
 	defer srv.Close()
+	conn.url = srv.URL
 
-	client := NewHTTPClient(srv.URL)
-	a.NotError(client.Notify("f1", &inType{Age: 18, First: "f", Last: "l"}))
-	a.NotError(client.Notify("not-found", &inType{})) // notify 不返回错误，即使找不到服务
+	a.NotError(conn.Notify("f1", &inType{Age: 18, First: "f", Last: "l"}))
+	a.NotError(conn.Notify("not-found", &inType{})) // notify 不返回错误，即使找不到服务
 
 	out := &outType{}
-	a.NotError(client.Send("f1", &inType{Age: 18, First: "f", Last: "l"}, out))
+	a.NotError(conn.Send("f1", &inType{Age: 18, First: "f", Last: "l"}, out))
 	a.Equal(out.Age, 18).Equal(out.Name, "fl")
 
 	// 检测抛出错误是否正确
 	out = &outType{}
-	err := client.Send("f2", &inType{Age: 18}, out)
+	err := conn.Send("f2", &inType{Age: 18}, out)
 	err1, ok := err.(*Error)
 	a.True(ok).Equal(err1.Code, CodeInvalidParams) // 由函数 f2 抛出的错误 Error
 
 	// 检测抛出错误是否正确
 	out = &outType{}
-	err = client.Send("f3", &inType{Age: 18}, out)
+	err = conn.Send("f3", &inType{Age: 18}, out)
 	err1, ok = err.(*Error)
 	a.True(ok).Equal(err1.Code, CodeInternalError) // 由函数 f3 抛出的普通错误
 
 	out = &outType{}
-	a.Error(client.Send("not-found", &inType{Age: 18}, out)) // 不存在的服务名称
+	a.Error(conn.Send("not-found", &inType{Age: 18}, out)) // 不存在的服务名称
 	a.Equal(out.Age, 0)
 }
 
