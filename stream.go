@@ -9,7 +9,8 @@ import (
 	"sync"
 )
 
-type socketTransport struct {
+// 定义基于流的传输层定义
+type streamTransport struct {
 	in *json.Decoder
 
 	out    io.Writer
@@ -20,17 +21,22 @@ type socketTransport struct {
 //
 // HTTP 和 websocket 有专门的实现方法
 func NewSocketTransport(conn net.Conn) Transport {
-	return &socketTransport{
-		in:  json.NewDecoder(conn),
-		out: conn,
+	return NewStreamTransport(conn, conn)
+}
+
+// NewStreamTransport 返回基于流的 Transport 实例
+func NewStreamTransport(in io.Reader, out io.Writer) Transport {
+	return &streamTransport{
+		in:  json.NewDecoder(in),
+		out: out,
 	}
 }
 
-func (s *socketTransport) Read(v interface{}) error {
+func (s *streamTransport) Read(v interface{}) error {
 	return s.in.Decode(v)
 }
 
-func (s *socketTransport) Write(v interface{}) error {
+func (s *streamTransport) Write(v interface{}) error {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return err

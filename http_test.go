@@ -11,7 +11,7 @@ import (
 
 var _ Transport = &httpTransport{}
 
-func TestHTTPServer_ServeHTTP(t *testing.T) {
+func TestHTTPConn_ServeHTTP(t *testing.T) {
 	a := assert.New(t)
 	s := initServer(a)
 	a.NotNil(s)

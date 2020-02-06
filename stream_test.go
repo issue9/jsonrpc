@@ -11,12 +11,11 @@ import (
 	"github.com/issue9/assert"
 )
 
-var _ Transport = &socketTransport{}
+var _ Transport = &streamTransport{}
 
-func TestConn_Serve(t *testing.T) {
+func TestNewSocketTransport(t *testing.T) {
 	a := assert.New(t)
 	srv := initServer(a)
-	a.NotNil(srv)
 
 	exit := make(chan struct{}, 1)
 	ctx, cancel := context.WithCancel(context.Background())

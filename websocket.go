@@ -2,9 +2,7 @@
 
 package jsonrpc
 
-import (
-	"github.com/gorilla/websocket"
-)
+import "github.com/gorilla/websocket"
 
 type websocketTransport struct {
 	conn *websocket.Conn
