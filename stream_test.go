@@ -20,23 +20,18 @@ func TestNewSocketTransport(t *testing.T) {
 	exit := make(chan struct{}, 1)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	l, err := net.Listen("tcp", ":8080")
-	a.NotError(err)
+	srvConn, clientConn := net.Pipe()
 
 	go func() {
-		c, err := l.Accept()
-		a.NotError(err)
-		conn := srv.NewConn(NewSocketTransport(c), nil)
+		conn := srv.NewConn(NewSocketTransport(srvConn), nil)
 		conn.Serve(ctx)
 		exit <- struct{}{}
 	}()
 	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
 
-	dialConn, err := net.Dial("tcp", ":8080")
-	a.NotError(err).NotNil(dialConn)
-	client := srv.NewConn(NewSocketTransport(dialConn), nil)
+	client := srv.NewConn(NewSocketTransport(clientConn), nil)
 
-	err = client.Notify("f1", &inType{Age: 18})
+	err := client.Notify("f1", &inType{Age: 18})
 	a.NotError(err)
 
 	out := &outType{}

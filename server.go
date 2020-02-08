@@ -13,8 +13,8 @@ import (
 
 // Server JSON RPC 服务实例
 type Server struct {
-	servers sync.Map
 	autoinc *autoinc.AutoInc
+	servers sync.Map
 }
 
 type handler struct {
