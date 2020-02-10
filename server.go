@@ -5,6 +5,7 @@ package jsonrpc
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 
@@ -84,17 +85,17 @@ func newHandler(f interface{}) *handler {
 		t.In(1).Kind() != reflect.Ptr ||
 		t.In(2).Kind() != reflect.Ptr ||
 		!t.Out(0).Implements(errType) {
-		panic("函数签名不正确")
+		panic(fmt.Sprintf("函数 %s 签名不正确", t.String()))
 	}
 
 	in := t.In(1).Elem()
 	if in.Kind() == reflect.Func || in.Kind() == reflect.Ptr || in.Kind() == reflect.Invalid {
-		panic("函数签名不正确")
+		panic(fmt.Sprintf("函数 %s 签名不正确", t.String()))
 	}
 
 	out := t.In(2).Elem()
 	if out.Kind() == reflect.Func || out.Kind() == reflect.Ptr || out.Kind() == reflect.Invalid {
-		panic("函数签名不正确")
+		panic(fmt.Sprintf("函数 %s 签名不正确", t.String()))
 	}
 
 	return &handler{
