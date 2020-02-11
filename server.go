@@ -16,6 +16,7 @@ import (
 type Server struct {
 	autoinc *autoinc.AutoInc
 	servers sync.Map
+	before  func(string) error
 }
 
 type handler struct {
@@ -35,6 +36,18 @@ func (s *Server) id() *requestID {
 		isNumber: true,
 		number:   s.autoinc.MustID(),
 	}
+}
+
+// RegisterBefore 注册 Before 函数
+//
+// f 的原型如下：
+//  func(method string)(err error)
+// method RPC 服务名；
+// 如果返回错误值，则会退出 RPC 调用，返回错误尽量采用 *Error 类型；
+//
+// NOTE: 如果多次调用，仅最后次启作用。
+func (s *Server) RegisterBefore(f func(method string) error) {
+	s.before = f
 }
 
 // Register 注册一个新的服务
@@ -110,6 +123,12 @@ func (s *Server) serve(t Transport) error {
 	req := &request{}
 	if err := t.Read(req); err != nil {
 		return s.writeError(t, CodeParseError, err, nil)
+	}
+
+	if s.before != nil {
+		if err := s.before(req.Method); err != nil {
+			return err
+		}
 	}
 
 	f, found := s.servers.Load(req.Method)

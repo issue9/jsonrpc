@@ -3,6 +3,8 @@
 package jsonrpc
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -56,6 +58,58 @@ func initServer(a *assert.Assertion) *Server {
 	a.False(srv.Register("f3", f3))
 
 	return srv
+}
+
+func TestServer_serve(t *testing.T) {
+	a := assert.New(t)
+	srv := initServer(a)
+
+	write := func(w *bytes.Buffer, method string, obj *inType) {
+		data, err := json.Marshal(obj)
+		a.NotError(err)
+		req := &request{
+			Version: Version,
+			ID:      srv.id(),
+			Method:  method,
+			Params:  (*json.RawMessage)(&data),
+		}
+		data, err = json.Marshal(req)
+		a.NotError(err)
+		a.NotError(w.Write(data))
+	}
+
+	read := func(r *bytes.Buffer, obj *outType) {
+		resp := &response{}
+		a.NotError(json.Unmarshal(r.Bytes(), resp))
+
+		a.NotError(resp.Error)
+
+		a.NotError(json.Unmarshal(*resp.Result, obj))
+	}
+
+	srv.RegisterBefore(func(method string) error {
+		if method == "f2" {
+			return NewError(CodeMethodNotFound, "not found")
+		}
+		return nil
+	})
+
+	in := new(bytes.Buffer)
+	out := new(bytes.Buffer)
+	write(in, "f1", &inType{Last: "l", First: "F"})
+	a.NotError(srv.serve(NewStreamTransport(in, out)))
+	o := &outType{}
+	read(out, o)
+	a.Equal(o.Name, "Fl").Empty(o.Age)
+
+	// 触发 before
+	in.Reset()
+	out.Reset()
+	write(in, "f2", &inType{Last: "l", First: "F"})
+	err := srv.serve(NewStreamTransport(in, out))
+	a.Error(err)
+	err2, ok := err.(*Error)
+	a.True(ok).Equal(err2.Code, CodeMethodNotFound)
 }
 
 func TestServer_Registers(t *testing.T) {
