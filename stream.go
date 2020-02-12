@@ -29,7 +29,7 @@ func NewSocketTransport(conn net.Conn) Transport {
 
 // NewStreamTransport 返回基于流的 Transport 实例
 //
-// close 指定了关闭 in 和 out 的函数。
+// close 指定了关闭 in 和 out 的函数，如果不需要关闭，则可以传递 nil 值。
 func NewStreamTransport(in io.Reader, out io.Writer, close func() error) Transport {
 	return &streamTransport{
 		in:    json.NewDecoder(in),
