@@ -15,20 +15,26 @@ type streamTransport struct {
 
 	out    io.Writer
 	outMux sync.Mutex
+
+	// 关闭流的函数
+	close func() error
 }
 
 // NewSocketTransport 声明基于 socket 的 Transport 实例
 //
 // HTTP 和 websocket 有专门的实现方法
 func NewSocketTransport(conn net.Conn) Transport {
-	return NewStreamTransport(conn, conn)
+	return NewStreamTransport(conn, conn, func() error { return conn.Close() })
 }
 
 // NewStreamTransport 返回基于流的 Transport 实例
-func NewStreamTransport(in io.Reader, out io.Writer) Transport {
+//
+// close 指定了关闭 in 和 out 的函数。
+func NewStreamTransport(in io.Reader, out io.Writer, close func() error) Transport {
 	return &streamTransport{
-		in:  json.NewDecoder(in),
-		out: out,
+		in:    json.NewDecoder(in),
+		out:   out,
+		close: close,
 	}
 }
 
@@ -46,4 +52,11 @@ func (s *streamTransport) Write(v interface{}) error {
 	defer s.outMux.Unlock()
 	_, err = s.out.Write(data)
 	return err
+}
+
+func (s *streamTransport) Close() error {
+	if s.close != nil {
+		return s.close()
+	}
+	return nil
 }

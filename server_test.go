@@ -97,7 +97,7 @@ func TestServer_serve(t *testing.T) {
 	in := new(bytes.Buffer)
 	out := new(bytes.Buffer)
 	write(in, "f1", &inType{Last: "l", First: "F"})
-	a.NotError(srv.serve(NewStreamTransport(in, out)))
+	a.NotError(srv.serve(NewStreamTransport(in, out, nil)))
 	o := &outType{}
 	read(out, o)
 	a.Equal(o.Name, "Fl").Empty(o.Age)
@@ -106,7 +106,7 @@ func TestServer_serve(t *testing.T) {
 	in.Reset()
 	out.Reset()
 	write(in, "f2", &inType{Last: "l", First: "F"})
-	err := srv.serve(NewStreamTransport(in, out))
+	err := srv.serve(NewStreamTransport(in, out, nil))
 	a.Error(err)
 	err2, ok := err.(*Error)
 	a.True(ok).Equal(err2.Code, CodeMethodNotFound)

@@ -65,6 +65,8 @@ type Transport interface {
 
 	// 将对象 v 写入传输层
 	Write(v interface{}) error
+
+	Close() error
 }
 
 type request struct {

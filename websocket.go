@@ -20,3 +20,7 @@ func (s *websocketTransport) Read(v interface{}) error {
 func (s *websocketTransport) Write(v interface{}) error {
 	return s.conn.WriteJSON(v)
 }
+
+func (s *websocketTransport) Close() error {
+	return s.conn.Close()
+}

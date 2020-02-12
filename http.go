@@ -171,6 +171,10 @@ func (s *httpTransport) Write(obj interface{}) error {
 	return err
 }
 
+func (s *httpTransport) Close() error {
+	return nil
+}
+
 // 验证 content-type 的正确性
 //
 // 如果存在该值，则必须要以 mimetype 开头，

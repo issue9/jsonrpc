@@ -89,6 +89,10 @@ func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
 // ctx 可以用于中断当前的服务。但是需要注意，t 的 Read 和 Write
 // 也有可能会阻塞整个服务，想要让 ctx 的取消启作用，还必须要有一定的机制从 Transport 中退出。
 func (conn *Conn) Serve(ctx context.Context) error {
+	defer func() {
+		conn.transport.Close()
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
