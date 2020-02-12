@@ -135,8 +135,11 @@ func (s *Server) serve(t Transport) error {
 	if !found {
 		return s.writeError(t, CodeMethodNotFound, errors.New("method not found"), nil)
 	}
-	h := f.(*handler)
 
+	return s.response(t, req, f.(*handler))
+}
+
+func (s *Server) response(t Transport, req *request, h *handler) error {
 	notify := req.ID == nil
 	in := reflect.New(h.in)
 	if err := json.Unmarshal(*req.Params, in.Interface()); err != nil {
