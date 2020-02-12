@@ -14,7 +14,7 @@ JSON RPC 2.0 的实现，目前实现了对以下传输层的接口：
 
 ```go
 srv := NewServer()
-conn := srv.NewConn(NewSocketTransport, nil)
+conn := srv.NewConn(NewSocketTransport(), nil)
 listen, err := net.Listen("tcp", ":8080")
 for {
     c, err := listen.Accept()
@@ -26,7 +26,7 @@ for {
 
 ```go
 srv := NewServer()
-conn := srv.NewHTTPServer(nil)
+conn := srv.NewHTTPConn(nil)
 http.Handle(conn)
 ```
 
