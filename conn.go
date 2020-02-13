@@ -87,8 +87,8 @@ func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
 // Serve 作为服务端运行
 //
 // t 表示的是传输层的实例；
-// ctx 可以用于中断当前的服务。但是需要注意，t 的 Read 和 Write
-// 也有可能会阻塞整个服务，想要让 ctx 的取消启作用，还必须要有一定的机制从 Transport 中退出。
+// ctx 可以用于中断当前的服务。但是需要注意，可能会被 Transport.Read 阻塞而无法退出，
+// 所以在调用 cancel 之后，可能还需要向 Conn 发送一条任意指令才行。
 func (conn *Conn) Serve(ctx context.Context) error {
 	wg := &sync.WaitGroup{}
 
