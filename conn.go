@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"sync"
 )
 
 // Conn JSON RPC 连接对象
@@ -89,7 +90,10 @@ func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
 // ctx 可以用于中断当前的服务。但是需要注意，t 的 Read 和 Write
 // 也有可能会阻塞整个服务，想要让 ctx 的取消启作用，还必须要有一定的机制从 Transport 中退出。
 func (conn *Conn) Serve(ctx context.Context) error {
+	wg := &sync.WaitGroup{}
+
 	defer func() {
+		wg.Wait()
 		conn.transport.Close()
 	}()
 
@@ -101,11 +105,16 @@ func (conn *Conn) Serve(ctx context.Context) error {
 			f, err := conn.server.serve(conn.transport)
 			if err != nil && conn.errlog != nil {
 				conn.errlog.Println(err)
+				continue
 			}
 
-			if err = f(); err != nil {
-				conn.errlog.Println(err)
-			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if err = f(); err != nil {
+					conn.errlog.Println(err)
+				}
+			}()
 		}
 	}
 }
