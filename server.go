@@ -119,12 +119,18 @@ func newHandler(f interface{}) *handler {
 }
 
 // 作为服务端，根据参数查找和执行服务
-func (s *Server) serve(t Transport) error {
+func (s *Server) serve(t Transport) (func() error, error) {
 	req := &request{}
 	if err := t.Read(req); err != nil {
-		return s.writeError(t, CodeParseError, err, nil)
+		return nil, s.writeError(t, CodeParseError, err, nil)
 	}
 
+	return func() error {
+		return s.response(t, req)
+	}, nil
+}
+
+func (s *Server) response(t Transport, req *request) error {
 	if s.before != nil {
 		if err := s.before(req.Method); err != nil {
 			return err
@@ -136,16 +142,14 @@ func (s *Server) serve(t Transport) error {
 		return s.writeError(t, CodeMethodNotFound, errors.New("method not found"), nil)
 	}
 
-	return s.response(t, req, f.(*handler))
-}
+	h := f.(*handler)
 
-func (s *Server) response(t Transport, req *request, h *handler) error {
-	notify := req.ID == nil
 	in := reflect.New(h.in)
 	if err := json.Unmarshal(*req.Params, in.Interface()); err != nil {
 		return s.writeError(t, CodeParseError, err, nil)
 	}
 
+	notify := req.ID == nil
 	out := reflect.New(h.out)
 	if errVal := h.f.Call([]reflect.Value{reflect.ValueOf(notify), in, out}); !errVal[0].IsNil() {
 		return s.writeError(t, CodeInternalError, errVal[0].Interface().(error), nil)

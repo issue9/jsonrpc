@@ -81,9 +81,7 @@ func TestServer_serve(t *testing.T) {
 	read := func(r *bytes.Buffer, obj *outType) {
 		resp := &response{}
 		a.NotError(json.Unmarshal(r.Bytes(), resp))
-
 		a.NotError(resp.Error)
-
 		a.NotError(json.Unmarshal(*resp.Result, obj))
 	}
 
@@ -97,7 +95,9 @@ func TestServer_serve(t *testing.T) {
 	in := new(bytes.Buffer)
 	out := new(bytes.Buffer)
 	write(in, "f1", &inType{Last: "l", First: "F"})
-	a.NotError(srv.serve(NewStreamTransport(in, out, nil)))
+	f, err := srv.serve(NewStreamTransport(in, out, nil))
+	a.NotError(err).NotNil(f)
+	a.NotError(f())
 	o := &outType{}
 	read(out, o)
 	a.Equal(o.Name, "Fl").Empty(o.Age)
@@ -106,8 +106,9 @@ func TestServer_serve(t *testing.T) {
 	in.Reset()
 	out.Reset()
 	write(in, "f2", &inType{Last: "l", First: "F"})
-	err := srv.serve(NewStreamTransport(in, out, nil))
-	a.Error(err)
+	f, err = srv.serve(NewStreamTransport(in, out, nil))
+	a.NotError(err).NotNil(f)
+	err = f() // before 此处调用
 	err2, ok := err.(*Error)
 	a.True(ok).Equal(err2.Code, CodeMethodNotFound)
 }

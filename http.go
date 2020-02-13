@@ -56,7 +56,17 @@ func (s *Server) NewHTTPConn(url string, errlog *log.Logger) *HTTPConn {
 
 func (h *HTTPConn) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := newHTTPTransport(w, r)
-	if err := h.server.serve(t); err != nil && h.errlog != nil {
+
+	f, err := h.server.serve(t)
+	if err != nil && h.errlog != nil {
+		h.errlog.Println(err)
+	}
+
+	if f == nil {
+		panic("f 不能为空值")
+	}
+
+	if err = f(); err != nil {
 		h.errlog.Println(err)
 	}
 }
