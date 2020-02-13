@@ -10,6 +10,8 @@ JSON RPC 2.0 的实现，目前实现了对以下传输层的接口：
 - websocket, 采用了 github.com/gorilla/websocket 作为底层调用；
 - HTTP 普通的 HTTP 请求方式；
 
+*目前不支持批处理模式*
+
 ### Socket
 
 ```go
