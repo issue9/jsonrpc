@@ -102,7 +102,7 @@ func (conn *Conn) Serve(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			f, err := conn.server.serve(conn.transport)
+			f, err := conn.server.read(conn.transport)
 			if err != nil && conn.errlog != nil {
 				conn.errlog.Println(err)
 				continue

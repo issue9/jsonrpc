@@ -60,7 +60,7 @@ func initServer(a *assert.Assertion) *Server {
 	return srv
 }
 
-func TestServer_serve(t *testing.T) {
+func TestServer_read(t *testing.T) {
 	a := assert.New(t)
 	srv := initServer(a)
 
@@ -95,7 +95,7 @@ func TestServer_serve(t *testing.T) {
 	in := new(bytes.Buffer)
 	out := new(bytes.Buffer)
 	write(in, "f1", &inType{Last: "l", First: "F"})
-	f, err := srv.serve(NewStreamTransport(in, out, nil))
+	f, err := srv.read(NewStreamTransport(in, out, nil))
 	a.NotError(err).NotNil(f)
 	a.NotError(f())
 	o := &outType{}
@@ -106,7 +106,7 @@ func TestServer_serve(t *testing.T) {
 	in.Reset()
 	out.Reset()
 	write(in, "f2", &inType{Last: "l", First: "F"})
-	f, err = srv.serve(NewStreamTransport(in, out, nil))
+	f, err = srv.read(NewStreamTransport(in, out, nil))
 	a.NotError(err).NotNil(f)
 	err = f() // before 此处调用
 	err2, ok := err.(*Error)

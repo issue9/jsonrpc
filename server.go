@@ -118,8 +118,7 @@ func newHandler(f interface{}) *handler {
 	}
 }
 
-// 作为服务端，根据参数查找和执行服务
-func (s *Server) serve(t Transport) (func() error, error) {
+func (s *Server) read(t Transport) (func() error, error) {
 	req := &request{}
 	if err := t.Read(req); err != nil {
 		return nil, s.writeError(t, CodeParseError, err, nil)

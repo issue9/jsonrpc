@@ -57,7 +57,7 @@ func (s *Server) NewHTTPConn(url string, errlog *log.Logger) *HTTPConn {
 func (h *HTTPConn) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := newHTTPTransport(w, r)
 
-	f, err := h.server.serve(t)
+	f, err := h.server.read(t)
 	if err != nil && h.errlog != nil {
 		h.errlog.Println(err)
 	}
