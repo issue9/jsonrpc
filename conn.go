@@ -98,7 +98,12 @@ func (conn *Conn) Serve(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			if err := conn.server.serve(conn.transport); err != nil && conn.errlog != nil {
+			f, err := conn.server.serve(conn.transport)
+			if err != nil && conn.errlog != nil {
+				conn.errlog.Println(err)
+			}
+
+			if err = f(); err != nil {
 				conn.errlog.Println(err)
 			}
 		}
