@@ -118,6 +118,9 @@ func newHandler(f interface{}) *handler {
 	}
 }
 
+// 可能返回 nil,nil 的情况
+//
+// 如果返回的函数为 nil，表示不需要调用函数，即已经输出了错误信息。
 func (s *Server) read(t Transport) (func() error, error) {
 	req := &request{}
 	if err := t.Read(req); err != nil {

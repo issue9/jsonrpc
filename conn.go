@@ -107,6 +107,9 @@ func (conn *Conn) Serve(ctx context.Context) error {
 				conn.errlog.Println(err)
 				continue
 			}
+			if f == nil {
+				continue
+			}
 
 			wg.Add(1)
 			go func() {
