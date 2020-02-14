@@ -53,7 +53,10 @@ func TestValidContentType(t *testing.T) {
 	a.NotError(validContentType(""))
 	a.NotError(validContentType("application/json;charset=utf-8"))
 	a.NotError(validContentType("application/json;;charset=utf-8"))
+	a.NotError(validContentType("application/json-rpc;;charset=utf-8"))
+	a.NotError(validContentType("application/json-rpc;;charset=UTF-8"))
 	a.NotError(validContentType("application/json;charset=utf-8"))
+	a.NotError(validContentType("application/jsonrequest;charset=utf-8"))
 	a.NotError(validContentType("application/json;"))
 
 	a.Error(validContentType("text/json;"))

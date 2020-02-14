@@ -28,10 +28,16 @@ var (
 	contentLength = http.CanonicalHeaderKey("content-length")
 )
 
-const (
-	charset  = "utf-8"
-	mimetype = "application/json"
-)
+// 可能的 mimetype 值，第一个元素作为默认值，在输出时使用。
+//
+// https://www.jsonrpc.org/historical/json-rpc-over-http.html#id13
+var mimetypes = []string{
+	"application/json",
+	"application/json-rpc",
+	"application/jsonrequest",
+}
+
+const charset = "utf-8"
 
 // HTTPConn 表示 json rpc 的 HTTP 服务端中间件
 type HTTPConn struct {
@@ -105,7 +111,7 @@ func (h *HTTPConn) request(method string, notify bool, params, result interface{
 		return err
 	}
 
-	resp, err := http.Post(h.url, mimetype, bytes.NewBuffer(body))
+	resp, err := http.Post(h.url, mimetypes[0], bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
@@ -180,7 +186,7 @@ func (s *httpTransport) Write(obj interface{}) error {
 	s.wMux.Lock()
 	defer s.wMux.Unlock()
 
-	s.w.Header().Set(contentType, mimetype)
+	s.w.Header().Set(contentType, mimetypes[0])
 	s.w.Header().Set(contentLength, strconv.Itoa(len(data)))
 	_, err = s.w.Write(data)
 	return err
@@ -201,7 +207,15 @@ func validContentType(header string) error {
 
 	pairs := strings.Split(header, ";")
 
-	if strings.ToLower(pairs[0]) != mimetype {
+	var found bool
+	mimetype := strings.ToLower(pairs[0])
+	for _, item := range mimetypes {
+		if mimetype == item {
+			found = true
+			break
+		}
+	}
+	if !found {
 		return ErrInvalidContentType
 	}
 
