@@ -107,6 +107,8 @@ func (s *streamTransport) Read(v interface{}) error {
 	return json.Unmarshal(data[:n], v)
 }
 
+const contentTypeHeader = "%s: %s;charset=%s\r\n%s: %d\r\n\r\n"
+
 func (s *streamTransport) Write(v interface{}) error {
 	data, err := json.Marshal(v)
 	if err != nil {
@@ -117,7 +119,7 @@ func (s *streamTransport) Write(v interface{}) error {
 	defer s.outMux.Unlock()
 
 	if s.header {
-		_, err = fmt.Fprintf(s.out, "%s: %s\r\n%s: %d\r\n\r\n", contentType, charset, contentLength, len(data))
+		_, err = fmt.Fprintf(s.out, contentTypeHeader, contentType, mimetypes[0], charset, contentLength, len(data))
 		if err != nil {
 			return err
 		}
