@@ -73,12 +73,12 @@ func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
 		return err
 	}
 
-	if resp.Error != nil {
-		return resp.Error
+	if resp.ID != nil && !req.ID.equal(resp.ID) {
+		return NewError(CodeInvalidParams, "id not equal")
 	}
 
-	if !req.ID.equal(resp.ID) {
-		return NewError(CodeInvalidParams, "id not equal")
+	if resp.Error != nil {
+		return resp.Error
 	}
 
 	return json.Unmarshal(*resp.Result, out)

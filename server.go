@@ -121,6 +121,7 @@ func newHandler(f interface{}) *handler {
 func (s *Server) read(t Transport) (func() error, error) {
 	req := &request{}
 	if err := t.Read(req); err != nil {
+		// 解析 request 出错，没有 ID 返回。
 		return nil, s.writeError(t, nil, CodeParseError, err, nil)
 	}
 

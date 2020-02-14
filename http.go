@@ -125,13 +125,14 @@ func (h *HTTPConn) request(method string, notify bool, params, result interface{
 		return err
 	}
 
+	if r.ID != nil && !req.ID.equal(r.ID) {
+		return NewError(CodeInvalidParams, "id not equal")
+	}
+
 	if r.Error != nil {
 		return r.Error
 	}
 
-	if !req.ID.equal(r.ID) {
-		return NewError(CodeInvalidParams, "id not equal")
-	}
 	return json.Unmarshal(*r.Result, result)
 }
 
