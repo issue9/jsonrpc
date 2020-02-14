@@ -121,7 +121,7 @@ func newHandler(f interface{}) *handler {
 func (s *Server) read(t Transport) (func() error, error) {
 	req := &request{}
 	if err := t.Read(req); err != nil {
-		return nil, s.writeError(t, CodeParseError, err, nil)
+		return nil, s.writeError(t, nil, CodeParseError, err, nil)
 	}
 
 	return func() error {
@@ -138,20 +138,20 @@ func (s *Server) response(t Transport, req *request) error {
 
 	f, found := s.servers.Load(req.Method)
 	if !found {
-		return s.writeError(t, CodeMethodNotFound, errors.New("method not found"), nil)
+		return s.writeError(t, req.ID, CodeMethodNotFound, errors.New("method not found"), nil)
 	}
 
 	h := f.(*handler)
 
 	in := reflect.New(h.in)
 	if err := json.Unmarshal(*req.Params, in.Interface()); err != nil {
-		return s.writeError(t, CodeParseError, err, nil)
+		return s.writeError(t, req.ID, CodeParseError, err, nil)
 	}
 
 	notify := req.ID == nil
 	out := reflect.New(h.out)
 	if errVal := h.f.Call([]reflect.Value{reflect.ValueOf(notify), in, out}); !errVal[0].IsNil() {
-		return s.writeError(t, CodeInternalError, errVal[0].Interface().(error), nil)
+		return s.writeError(t, req.ID, CodeInternalError, errVal[0].Interface().(error), nil)
 	}
 
 	if notify {
@@ -171,9 +171,10 @@ func (s *Server) response(t Transport, req *request) error {
 	return t.Write(resp)
 }
 
-func (s *Server) writeError(t Transport, code int, err error, data interface{}) error {
+func (s *Server) writeError(t Transport, id *requestID, code int, err error, data interface{}) error {
 	resp := &response{
 		Version: Version,
+		ID:      id,
 	}
 
 	if err2, ok := err.(*Error); ok {
