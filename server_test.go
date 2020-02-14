@@ -111,6 +111,13 @@ func TestServer_read(t *testing.T) {
 	err = f() // before 此处调用
 	err2, ok := err.(*Error)
 	a.True(ok).Equal(err2.Code, CodeMethodNotFound)
+
+	// 写入任意数据，read 返回两个值都为 nil
+	in.Reset()
+	out.Reset()
+	in.WriteString("xxx:wes-->")
+	f, err = srv.read(NewStreamTransport(in, out, nil))
+	a.NotError(err).Nil(f)
 }
 
 func TestServer_Registers(t *testing.T) {

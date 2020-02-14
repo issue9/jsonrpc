@@ -4,6 +4,8 @@ package jsonrpc
 
 import (
 	"context"
+	"io/ioutil"
+	"log"
 	"net"
 	"testing"
 	"time"
@@ -23,7 +25,7 @@ func TestNewSocketTransport(t *testing.T) {
 	srvConn, clientConn := net.Pipe()
 
 	go func() {
-		conn := srv.NewConn(NewSocketTransport(srvConn), nil)
+		conn := srv.NewConn(NewSocketTransport(srvConn), log.New(ioutil.Discard, "", 0))
 		conn.Serve(ctx)
 		exit <- struct{}{}
 	}()
