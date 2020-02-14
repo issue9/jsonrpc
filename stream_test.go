@@ -25,13 +25,13 @@ func TestNewSocketTransport(t *testing.T) {
 	srvConn, clientConn := net.Pipe()
 
 	go func() {
-		conn := srv.NewConn(NewSocketTransport(srvConn), log.New(ioutil.Discard, "", 0))
+		conn := srv.NewConn(NewSocketTransport(false, srvConn), log.New(ioutil.Discard, "", 0))
 		conn.Serve(ctx)
 		exit <- struct{}{}
 	}()
 	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
 
-	client := srv.NewConn(NewSocketTransport(clientConn), nil)
+	client := srv.NewConn(NewSocketTransport(false, clientConn), nil)
 
 	err := client.Notify("f1", &inType{Age: 18})
 	a.NotError(err)

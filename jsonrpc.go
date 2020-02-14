@@ -61,9 +61,15 @@ func (id *requestID) UnmarshalJSON(data []byte) error {
 // Transport 用于操作 JSON RPC 的传输层接口
 type Transport interface {
 	// 从转输层读取内容并转换成对象 v
+	//
+	// 如果返回的是 *Error 类型的错误，则直接将该错误信息反馈给客户端，
+	// 如果是普通错误，则统一转换成 CodeParseError 传递给客户端。
 	Read(v interface{}) error
 
 	// 将对象 v 写入传输层
+	//
+	// 如果返回的是 *Error 类型的错误，则直接将该错误信息反馈给客户端，
+	// 如果是普通错误，则错误代码不确定。
 	Write(v interface{}) error
 
 	Close() error

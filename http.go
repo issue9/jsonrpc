@@ -18,15 +18,19 @@ import (
 
 // 一些错误定义
 var (
+	ErrInvalidHeader      = errors.New("无效的报头格式")
 	ErrInvalidContentType = errors.New("无效的报头 Content-Type")
 	ErrMissContentLength  = errors.New("缺少 Content-Length 报头")
 )
 
+var (
+	contentType   = http.CanonicalHeaderKey("content-Type")
+	contentLength = http.CanonicalHeaderKey("content-length")
+)
+
 const (
-	contentType   = "content-Type"
-	contentLength = "content-length"
-	charset       = "utf-8"
-	mimetype      = "application/json"
+	charset  = "utf-8"
+	mimetype = "application/json"
 )
 
 // HTTPConn 表示 json rpc 的 HTTP 服务端中间件
