@@ -148,8 +148,10 @@ func (s *Server) response(t Transport, req *request) error {
 	h := f.(*handler)
 
 	in := reflect.New(h.in)
-	if err := json.Unmarshal(*req.Params, in.Interface()); err != nil {
-		return s.writeError(t, req.ID, CodeParseError, err, nil)
+	if req.Params != nil {
+		if err := json.Unmarshal(*req.Params, in.Interface()); err != nil {
+			return s.writeError(t, req.ID, CodeParseError, err, nil)
+		}
 	}
 
 	notify := req.ID == nil
