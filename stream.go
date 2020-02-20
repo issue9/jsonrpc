@@ -94,7 +94,7 @@ func (s *streamTransport) Read(v interface{}) error {
 		}
 	}
 
-	if length <= 0 {
+	if length < 0 {
 		return ErrMissContentLength
 	}
 
