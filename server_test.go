@@ -118,6 +118,14 @@ func TestServer_read(t *testing.T) {
 	in.WriteString("xxx:wes-->")
 	f, err = srv.read(NewStreamTransport(false, in, out, nil))
 	a.NotError(err).Nil(f)
+
+	// request.params == nil
+	in.Reset()
+	out.Reset()
+	write(in, "f1", nil)
+	f, err = srv.read(NewStreamTransport(false, in, out, nil))
+	a.NotError(err).NotNil(f)
+	a.NotError(f())
 }
 
 func TestServer_Registers(t *testing.T) {
