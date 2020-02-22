@@ -91,16 +91,20 @@ func (h *HTTPConn) Send(method string, params, result interface{}) error {
 	return h.request(method, false, params, result)
 }
 
-func (h *HTTPConn) request(method string, notify bool, params, result interface{}) error {
-	data, err := json.Marshal(params)
-	if err != nil {
-		return err
+func (h *HTTPConn) request(method string, notify bool, in, out interface{}) error {
+	var params *json.RawMessage
+	if in != nil {
+		data, err := json.Marshal(in)
+		if err != nil {
+			return err
+		}
+		params = (*json.RawMessage)(&data)
 	}
 
 	req := &request{
 		Version: Version,
 		Method:  method,
-		Params:  (*json.RawMessage)(&data),
+		Params:  params,
 	}
 	if !notify {
 		req.ID = h.server.id()
@@ -120,7 +124,7 @@ func (h *HTTPConn) request(method string, notify bool, params, result interface{
 		return nil
 	}
 
-	data, err = ioutil.ReadAll(resp.Body)
+	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -143,7 +147,10 @@ func (h *HTTPConn) request(method string, notify bool, params, result interface{
 		return r.Error
 	}
 
-	return json.Unmarshal(*r.Result, result)
+	if r.Result == nil {
+		return nil
+	}
+	return json.Unmarshal(*r.Result, out)
 }
 
 // 声明基于 HTTP 的 Transport 实例

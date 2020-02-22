@@ -22,6 +22,7 @@ type streamTransport struct {
 	header  bool
 	buffer  *bufio.Reader
 	decoder *json.Decoder
+	inMux   sync.Mutex
 
 	out    io.Writer
 	outMux sync.Mutex
@@ -58,6 +59,9 @@ func NewStreamTransport(header bool, in io.Reader, out io.Writer, close func() e
 }
 
 func (s *streamTransport) Read(v interface{}) error {
+	s.inMux.Lock()
+	defer s.inMux.Unlock()
+
 	if !s.header {
 		return s.decoder.Decode(v)
 	}
@@ -94,8 +98,11 @@ func (s *streamTransport) Read(v interface{}) error {
 		}
 	}
 
-	if length < 0 {
+	switch {
+	case length < 0:
 		return ErrMissContentLength
+	case length == 0:
+		return nil
 	}
 
 	data := make([]byte, length)

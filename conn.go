@@ -35,32 +35,36 @@ func (s *Server) NewConn(t Transport, errlog *log.Logger) *Conn {
 //
 // 仅发送 in 至服务端，会忽略服务端返回的信息。
 func (conn *Conn) Notify(method string, in interface{}) error {
-	return conn.send(true, method, in, nil)
+	return conn.request(true, method, in, nil)
 }
 
 // Send 发送请求内容
 //
 // 发送数据 in 至服务，并获取返回的内容填充至 out。
 func (conn *Conn) Send(method string, in, out interface{}) error {
-	return conn.send(false, method, in, out)
+	return conn.request(false, method, in, out)
 }
 
-func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
-	data, err := json.Marshal(in)
-	if err != nil {
-		return err
+func (conn *Conn) request(notify bool, method string, in, out interface{}) error {
+	var params *json.RawMessage
+	if in != nil {
+		data, err := json.Marshal(in)
+		if err != nil {
+			return err
+		}
+		params = (*json.RawMessage)(&data)
 	}
 
 	req := &request{
 		Version: Version,
 		Method:  method,
-		Params:  (*json.RawMessage)(&data),
+		Params:  params,
 	}
 	if !notify {
 		req.ID = conn.server.id()
 	}
 
-	if err = conn.transport.Write(req); err != nil {
+	if err := conn.transport.Write(req); err != nil {
 		return err
 	}
 
@@ -69,7 +73,7 @@ func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
 	}
 
 	resp := &response{}
-	if err = conn.transport.Read(resp); err != nil {
+	if err := conn.transport.Read(resp); err != nil {
 		return err
 	}
 
@@ -81,6 +85,9 @@ func (conn *Conn) send(notify bool, method string, in, out interface{}) error {
 		return resp.Error
 	}
 
+	if resp.Result == nil {
+		return nil
+	}
 	return json.Unmarshal(*resp.Result, out)
 }
 

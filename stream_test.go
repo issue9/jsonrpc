@@ -44,6 +44,11 @@ func TestNewSocketTransport(t *testing.T) {
 	err = client.Send("f1", &inType{Age: 19, Last: "l"}, out)
 	a.NotError(err).Equal(out.Age, 19).Equal(out.Name, "l")
 
+	// 发送空数据
+	out = &outType{}
+	err = client.Send("f1", nil, out)
+	a.NotError(err).Equal(out.Age, 0)
+
 	// 检测抛出错误是否正确
 	out = &outType{}
 	err = client.Send("f2", &inType{Age: 19, Last: "l"}, out)
@@ -91,6 +96,11 @@ func TestNewSocketTransport_withHeader(t *testing.T) {
 	out = &outType{}
 	err = client.Send("f1", &inType{Age: 19, Last: "l"}, out)
 	a.NotError(err).Equal(out.Age, 19).Equal(out.Name, "l")
+
+	// 发送空数据
+	out = &outType{}
+	err = client.Send("f1", nil, out)
+	a.NotError(err).Equal(out.Age, 0)
 
 	// 检测抛出错误是否正确
 	out = &outType{}
