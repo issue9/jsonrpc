@@ -11,7 +11,8 @@ import (
 type websocketTransport struct {
 	conn *websocket.Conn
 
-	writeMux sync.Mutex
+	inMux  sync.Mutex
+	outMux sync.Mutex
 }
 
 // NewWebsocketTransport 声明基于 websocket 的 Transport 实例
@@ -20,12 +21,15 @@ func NewWebsocketTransport(conn *websocket.Conn) Transport {
 }
 
 func (s *websocketTransport) Read(v interface{}) error {
+	s.inMux.Lock()
+	s.inMux.Unlock()
+
 	return s.conn.ReadJSON(v)
 }
 
 func (s *websocketTransport) Write(v interface{}) error {
-	s.writeMux.Lock()
-	defer s.writeMux.Unlock()
+	s.outMux.Lock()
+	defer s.outMux.Unlock()
 
 	return s.conn.WriteJSON(v)
 }

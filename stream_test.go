@@ -26,7 +26,8 @@ func TestNewSocketTransport(t *testing.T) {
 
 	go func() {
 		conn := srv.NewConn(NewSocketTransport(false, srvConn), log.New(ioutil.Discard, "", 0))
-		conn.Serve(ctx)
+		err := conn.Serve(ctx)
+		a.Equal(err, context.Canceled)
 		exit <- struct{}{}
 	}()
 	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
@@ -79,7 +80,8 @@ func TestNewSocketTransport_withHeader(t *testing.T) {
 
 	go func() {
 		conn := srv.NewConn(NewSocketTransport(true, srvConn), log.New(ioutil.Discard, "", 0))
-		conn.Serve(ctx)
+		err := conn.Serve(ctx)
+		a.Equal(err, context.Canceled)
 		exit <- struct{}{}
 	}()
 	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
