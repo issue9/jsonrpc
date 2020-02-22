@@ -21,6 +21,7 @@ var (
 	ErrInvalidHeader      = errors.New("无效的报头格式")
 	ErrInvalidContentType = errors.New("无效的报头 Content-Type")
 	ErrMissContentLength  = errors.New("缺少 Content-Length 报头")
+	ErrIDNotEqual         = NewError(CodeInvalidParams, "ID 不相等")
 )
 
 var (
@@ -140,7 +141,7 @@ func (h *HTTPConn) request(method string, notify bool, in, out interface{}) erro
 	}
 
 	if r.ID != nil && !req.ID.Equal(r.ID) {
-		return NewError(CodeInvalidParams, "id not equal")
+		return ErrIDNotEqual
 	}
 
 	if r.Error != nil {
