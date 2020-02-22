@@ -77,7 +77,7 @@ func (conn *Conn) request(notify bool, method string, in, out interface{}) error
 		return err
 	}
 
-	if resp.ID != nil && !req.ID.equal(resp.ID) {
+	if resp.ID != nil && !req.ID.Equal(resp.ID) {
 		return NewError(CodeInvalidParams, "id not equal")
 	}
 

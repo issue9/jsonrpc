@@ -23,14 +23,15 @@ const (
 	CodeUnknownErrorCode     = -32001
 )
 
-// 用于表示唯一的请求 ID，可以是数值，字符串
-type requestID struct {
+// ID 用于表示唯一的请求 ID，可以是数值，字符串
+type ID struct {
 	number   int64
 	alpha    string
 	isNumber bool
 }
 
-func (id *requestID) equal(id2 *requestID) bool {
+// Equal 两个 ID 是否相等
+func (id *ID) Equal(id2 *ID) bool {
 	if id.isNumber != id2.isNumber {
 		return false
 	}
@@ -41,14 +42,14 @@ func (id *requestID) equal(id2 *requestID) bool {
 	return id.alpha == id2.alpha
 }
 
-func (id *requestID) MarshalJSON() ([]byte, error) {
+func (id *ID) MarshalJSON() ([]byte, error) {
 	if id.isNumber {
 		return json.Marshal(id.number)
 	}
 	return json.Marshal(id.alpha)
 }
 
-func (id *requestID) UnmarshalJSON(data []byte) error {
+func (id *ID) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &id.number); err == nil {
 		id.isNumber = true
 		return nil
@@ -81,7 +82,7 @@ type request struct {
 
 	// 已建立客户端的唯一标识 id，值必须包含一个字符串、数值或 NULL 空值。
 	// 如果不包含该成员则被认定为是一个通知。该值一般不为 NULL，若为数值则不应该包含小数。
-	ID *requestID `json:"id,omitempty"`
+	ID *ID `json:"id,omitempty"`
 
 	// 包含所要调用方法名称的字符串
 	//
@@ -104,7 +105,7 @@ type response struct {
 	Error *Error `json:"error,omitempty"`
 
 	// ID 返回请求端的 ID，如果检查 ID 失败时，返回空值
-	ID *requestID `json:"id,omitempty"`
+	ID *ID `json:"id,omitempty"`
 }
 
 // Error JSON-RPC 返回的错误类型

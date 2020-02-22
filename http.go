@@ -139,7 +139,7 @@ func (h *HTTPConn) request(method string, notify bool, in, out interface{}) erro
 		return err
 	}
 
-	if r.ID != nil && !req.ID.equal(r.ID) {
+	if r.ID != nil && !req.ID.Equal(r.ID) {
 		return NewError(CodeInvalidParams, "id not equal")
 	}
 

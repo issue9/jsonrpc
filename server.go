@@ -31,8 +31,8 @@ func NewServer() *Server {
 	}
 }
 
-func (s *Server) id() *requestID {
-	return &requestID{
+func (s *Server) id() *ID {
+	return &ID{
 		isNumber: true,
 		number:   s.autoinc.MustID(),
 	}
@@ -177,7 +177,7 @@ func (s *Server) response(t Transport, req *request) error {
 	return t.Write(resp)
 }
 
-func (s *Server) writeError(t Transport, id *requestID, code int, err error, data interface{}) error {
+func (s *Server) writeError(t Transport, id *ID, code int, err error, data interface{}) error {
 	resp := &response{
 		Version: Version,
 		ID:      id,

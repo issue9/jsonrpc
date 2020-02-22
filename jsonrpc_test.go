@@ -12,50 +12,50 @@ import (
 var (
 	_ error = &Error{}
 
-	_ json.Marshaler   = &requestID{}
-	_ json.Unmarshaler = &requestID{}
+	_ json.Marshaler   = &ID{}
+	_ json.Unmarshaler = &ID{}
 )
 
 func TestRequestID_equal(t *testing.T) {
 	a := assert.New(t)
 
-	v1 := &requestID{isNumber: true}
-	v2 := &requestID{isNumber: false}
-	a.False(v1.equal(v2))
+	v1 := &ID{isNumber: true}
+	v2 := &ID{isNumber: false}
+	a.False(v1.Equal(v2))
 
-	v1 = &requestID{isNumber: true, number: 1}
-	v2 = &requestID{isNumber: true, number: 1, alpha: "11"}
-	a.True(v1.equal(v2))
+	v1 = &ID{isNumber: true, number: 1}
+	v2 = &ID{isNumber: true, number: 1, alpha: "11"}
+	a.True(v1.Equal(v2))
 
-	v1 = &requestID{isNumber: true, number: 12}
-	v2 = &requestID{isNumber: true, number: 1, alpha: "11"}
-	a.False(v1.equal(v2))
+	v1 = &ID{isNumber: true, number: 12}
+	v2 = &ID{isNumber: true, number: 1, alpha: "11"}
+	a.False(v1.Equal(v2))
 
-	v1 = &requestID{isNumber: false, number: 1, alpha: "11"}
-	v2 = &requestID{isNumber: false, number: 1, alpha: "11"}
-	a.True(v1.equal(v2))
+	v1 = &ID{isNumber: false, number: 1, alpha: "11"}
+	v2 = &ID{isNumber: false, number: 1, alpha: "11"}
+	a.True(v1.Equal(v2))
 
-	v1 = &requestID{isNumber: false, number: 1, alpha: "112"}
-	v2 = &requestID{isNumber: false, number: 1, alpha: "11"}
-	a.False(v1.equal(v2))
+	v1 = &ID{isNumber: false, number: 1, alpha: "112"}
+	v2 = &ID{isNumber: false, number: 1, alpha: "11"}
+	a.False(v1.Equal(v2))
 }
 
 func TestRequestID_MarshalJSON(t *testing.T) {
 	a := assert.New(t)
 
-	var id *requestID
+	var id *ID
 	data, err := json.Marshal(id)
 	a.NotError(err).
 		Equal(string(data), "null")
 
-	id = &requestID{
+	id = &ID{
 		isNumber: true,
 		number:   0,
 	}
 	data, err = json.Marshal(id)
 	a.NotError(err).Equal(string(data), "0")
 
-	id = &requestID{
+	id = &ID{
 		isNumber: false,
 		number:   11,
 		alpha:    "11",
@@ -67,25 +67,25 @@ func TestRequestID_MarshalJSON(t *testing.T) {
 func TestRequestID_UnmarshalJSON(t *testing.T) {
 	a := assert.New(t)
 
-	var id = &requestID{}
+	var id = &ID{}
 	a.NotError(json.Unmarshal([]byte("0"), id))
 	a.True(id.isNumber).
 		Equal(id.number, 0).
 		Empty(id.alpha)
 
-	id = &requestID{}
+	id = &ID{}
 	a.NotError(json.Unmarshal([]byte("1"), id))
 	a.True(id.isNumber).
 		Equal(id.number, 1).
 		Empty(id.alpha)
 
-	id = &requestID{}
+	id = &ID{}
 	a.NotError(json.Unmarshal([]byte("\"1\""), id))
 	a.False(id.isNumber).
 		Equal(id.number, 0).
 		Equal(id.alpha, "1")
 
-	id = &requestID{}
+	id = &ID{}
 	a.NotError(json.Unmarshal([]byte("\"\""), id))
 	a.False(id.isNumber).
 		Equal(id.number, 0).
