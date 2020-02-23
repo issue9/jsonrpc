@@ -78,11 +78,15 @@ func TestServer_read(t *testing.T) {
 		a.NotError(w.Write(data))
 	}
 
-	read := func(r *bytes.Buffer, obj *outType) {
+	read := func(r *bytes.Buffer, code int, obj *outType) {
 		resp := &response{}
 		a.NotError(json.Unmarshal(r.Bytes(), resp))
-		a.NotError(resp.Error)
-		a.NotError(json.Unmarshal(*resp.Result, obj))
+		if code != 0 {
+			a.NotNil(resp.Error).Equal(resp.Error.Code, code)
+		} else {
+			a.Nil(resp.Error)
+			a.NotError(json.Unmarshal(*resp.Result, obj))
+		}
 	}
 
 	srv.RegisterBefore(func(method string) error {
@@ -99,7 +103,7 @@ func TestServer_read(t *testing.T) {
 	a.NotError(err).NotNil(f)
 	a.NotError(f())
 	o := &outType{}
-	read(out, o)
+	read(out, 0, o)
 	a.Equal(o.Name, "Fl").Empty(o.Age)
 
 	// 触发 before
@@ -126,6 +130,23 @@ func TestServer_read(t *testing.T) {
 	f, err = srv.read(NewStreamTransport(false, in, out, nil))
 	a.NotError(err).NotNil(f)
 	a.NotError(f())
+
+	// request 写入为空值
+	in.Reset()
+	out.Reset()
+	in.Write([]byte("{}"))
+	f, err = srv.read(NewStreamTransport(false, in, out, nil))
+	a.NotError(err).Nil(f)
+	o = &outType{}
+	read(out, CodeInvalidRequest, o)
+
+	// 空的请求体，无法解析至 request
+	in.Reset()
+	out.Reset()
+	f, err = srv.read(NewStreamTransport(false, in, out, nil))
+	a.NotError(err).Nil(f)
+	o = &outType{}
+	read(out, CodeParseError, o)
 }
 
 func TestServer_Registers(t *testing.T) {

@@ -116,6 +116,10 @@ type response struct {
 	ID *ID `json:"id,omitempty"`
 }
 
+func (req *request) isEmpty() bool {
+	return req.Version == "" && req.ID == nil && req.Method == "" && req.Params == nil
+}
+
 // NewError 新的 Error 对象
 func NewError(code int, msg string) *Error {
 	return NewErrorWithData(code, msg, nil)

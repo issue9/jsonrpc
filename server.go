@@ -89,6 +89,10 @@ func (s *Server) read(t Transport) (func() error, error) {
 		return nil, s.writeError(t, nil, CodeParseError, err, nil)
 	}
 
+	if req.isEmpty() {
+		return nil, s.writeError(t, nil, CodeInvalidRequest, errors.New("invalid request"), nil)
+	}
+
 	return func() error {
 		return s.response(t, req)
 	}, nil
@@ -106,12 +110,7 @@ func (s *Server) response(t Transport, req *request) error {
 		return s.writeError(t, req.ID, CodeMethodNotFound, errors.New("method not found"), nil)
 	}
 
-	h, ok := f.(*handler)
-	if !ok {
-		panic("处理函数类型不正确")
-	}
-
-	resp, err := h.call(req)
+	resp, err := f.(*handler).call(req)
 	if err != nil {
 		return s.writeError(t, req.ID, CodeParseError, err, nil)
 	}
