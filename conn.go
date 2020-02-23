@@ -4,7 +4,7 @@ package jsonrpc
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 )
@@ -46,49 +46,7 @@ func (conn *Conn) Send(method string, in, out interface{}) error {
 }
 
 func (conn *Conn) request(notify bool, method string, in, out interface{}) error {
-	var params *json.RawMessage
-	if in != nil {
-		data, err := json.Marshal(in)
-		if err != nil {
-			return err
-		}
-		params = (*json.RawMessage)(&data)
-	}
-
-	req := &request{
-		Version: Version,
-		Method:  method,
-		Params:  params,
-	}
-	if !notify {
-		req.ID = conn.server.id()
-	}
-
-	if err := conn.transport.Write(req); err != nil {
-		return err
-	}
-
-	if notify {
-		return nil
-	}
-
-	resp := &response{}
-	if err := conn.transport.Read(resp); err != nil {
-		return err
-	}
-
-	if resp.ID != nil && !req.ID.Equal(resp.ID) {
-		return ErrIDNotEqual
-	}
-
-	if resp.Error != nil {
-		return resp.Error
-	}
-
-	if resp.Result == nil {
-		return nil
-	}
-	return json.Unmarshal(*resp.Result, out)
+	return conn.server.request(conn.transport, notify, method, in, out)
 }
 
 // Serve 作为服务端运行
@@ -96,12 +54,18 @@ func (conn *Conn) request(notify bool, method string, in, out interface{}) error
 // t 表示的是传输层的实例；
 // ctx 可以用于中断当前的服务。但是需要注意，可能会被 Transport.Read 阻塞而无法退出，
 // 所以在调用 cancel 之后，可能还需要向 Conn 发送一条任意指令才行。
-func (conn *Conn) Serve(ctx context.Context) error {
+func (conn *Conn) Serve(ctx context.Context) (err error) {
 	wg := &sync.WaitGroup{}
 
 	defer func() {
 		wg.Wait()
-		conn.transport.Close()
+		if err2 := conn.transport.Close(); err2 != nil {
+			if err != nil {
+				err = fmt.Errorf("在抛出错误 %w 时，再次发生了错误 %v", err, err2)
+			} else {
+				err = err2
+			}
+		}
 	}()
 
 	for {

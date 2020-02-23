@@ -11,6 +11,11 @@ import (
 	"github.com/issue9/assert"
 )
 
+var (
+	_ Transport = &httpClientTransport{}
+	_ Transport = &httpTransport{}
+)
+
 // 用于测试的数据类型
 type (
 	inType struct {

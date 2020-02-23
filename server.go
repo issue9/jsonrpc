@@ -3,6 +3,7 @@
 package jsonrpc
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/issue9/autoinc"
@@ -131,4 +132,61 @@ func (s *Server) writeError(t Transport, id *ID, code int, err error, data inter
 	}
 
 	return t.Write(resp)
+}
+
+// 作为客户端向服务端主动发送请求
+func (s *Server) request(t Transport, notify bool, method string, in, out interface{}) error {
+	req, err := s.buildRequest(method, notify, in)
+	if err != nil {
+		return err
+	}
+
+	if err := t.Write(req); err != nil {
+		return err
+	}
+
+	if notify {
+		return nil
+	}
+
+	resp := &response{}
+	if err := t.Read(resp); err != nil {
+		return err
+	}
+
+	if resp.ID != nil && !req.ID.Equal(resp.ID) {
+		return ErrIDNotEqual
+	}
+
+	if resp.Error != nil {
+		return resp.Error
+	}
+
+	if resp.Result == nil {
+		return nil
+	}
+	return json.Unmarshal(*resp.Result, out)
+}
+
+// 构建作为客户端时的请求对象
+func (s *Server) buildRequest(method string, notify bool, in interface{}) (*request, error) {
+	var params *json.RawMessage
+	if in != nil {
+		data, err := json.Marshal(in)
+		if err != nil {
+			return nil, err
+		}
+		params = (*json.RawMessage)(&data)
+	}
+
+	req := &request{
+		Version: Version,
+		Method:  method,
+		Params:  params,
+	}
+	if !notify {
+		req.ID = s.id()
+	}
+
+	return req, nil
 }

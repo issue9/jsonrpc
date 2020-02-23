@@ -5,7 +5,6 @@ package jsonrpc
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -44,6 +43,41 @@ type httpTransport struct {
 	wMux sync.Mutex
 }
 
+type httpClientTransport struct {
+	url  string
+	resp *http.Response
+}
+
+func newHTTPClientTransport(url string) Transport {
+	return &httpClientTransport{url: url}
+}
+
+func (h *httpClientTransport) Write(v interface{}) error {
+	body, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	h.resp, err = http.Post(h.url, mimetypes[0], bytes.NewBuffer(body))
+	return err
+}
+
+func (h *httpClientTransport) Read(v interface{}) error {
+	data, err := ioutil.ReadAll(h.resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, v)
+}
+
+func (h *httpClientTransport) Close() error {
+	if h.resp != nil {
+		return h.resp.Body.Close()
+	}
+	return nil
+}
+
 // NewHTTPConn 声明 HTTP 服务端中间件
 //
 // url 表示主动请求时的 URL 地址，如果不需要，可以传递空值；
@@ -58,6 +92,11 @@ func (s *Server) NewHTTPConn(url string, errlog *log.Logger) *HTTPConn {
 
 func (h *HTTPConn) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := newHTTPTransport(w, r)
+	defer func() {
+		if err := t.Close(); err != nil && h.errlog != nil {
+			h.errlog.Println(err)
+		}
+	}()
 
 	f, err := h.server.read(t)
 	if err != nil && h.errlog != nil {
@@ -84,65 +123,18 @@ func (h *HTTPConn) Send(method string, params, result interface{}) error {
 }
 
 func (h *HTTPConn) request(method string, notify bool, in, out interface{}) error {
-	var params *json.RawMessage
-	if in != nil {
-		data, err := json.Marshal(in)
-		if err != nil {
-			return err
-		}
-		params = (*json.RawMessage)(&data)
+	if h.url == "" {
+		panic("初始化时未声明 url 参数，无法作为客户端使用")
 	}
 
-	req := &request{
-		Version: Version,
-		Method:  method,
-		Params:  params,
-	}
-	if !notify {
-		req.ID = h.server.id()
-	}
-
-	body, err := json.Marshal(req)
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.Post(h.url, mimetypes[0], bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-
-	if notify {
-		return nil
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
+	t := newHTTPClientTransport(h.url)
 	defer func() {
-		if err1 := resp.Body.Close(); err != nil {
-			err = fmt.Errorf("在抛出错误 %s 时再次发生错误 %w", err.Error(), err1)
+		if err := t.Close(); err != nil && h.errlog != nil {
+			h.errlog.Println(err)
 		}
 	}()
 
-	r := &response{}
-	if err = json.Unmarshal(data, r); err != nil {
-		return err
-	}
-
-	if r.ID != nil && !req.ID.Equal(r.ID) {
-		return ErrIDNotEqual
-	}
-
-	if r.Error != nil {
-		return r.Error
-	}
-
-	if r.Result == nil {
-		return nil
-	}
-	return json.Unmarshal(*r.Result, out)
+	return h.server.request(t, notify, method, in, out)
 }
 
 // 声明基于 HTTP 的 Transport 实例
