@@ -192,7 +192,7 @@ func (s *httpTransport) Write(obj interface{}) error {
 }
 
 func (s *httpTransport) Close() error {
-	return nil
+	return s.r.Body.Close()
 }
 
 // 验证 content-type 的正确性
