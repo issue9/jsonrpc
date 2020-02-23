@@ -8,6 +8,7 @@ package jsonrpc
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 )
 
 // Version JSON RPC 的版本
@@ -24,12 +25,9 @@ const (
 
 // 一些错误定义
 var (
-	ErrInvalidHeader      = errors.New("无效的报头格式")
-	ErrInvalidContentType = errors.New("无效的报头 Content-Type")
-	ErrMissContentLength  = errors.New("缺少 Content-Length 报头")
-	ErrIDNotEqual         = NewError(CodeInvalidParams, "ID 不相等")
-	ErrInvalidRequest     = NewError(CodeInvalidRequest, "无效的请求内容")
-	ErrMethodNotFound     = NewError(CodeMethodNotFound, "未找到对应的服务实现")
+	errInvalidHeader      = errors.New("无效的报头格式")
+	errInvalidContentType = errors.New("无效的报头 Content-Type")
+	errMissContentLength  = errors.New("缺少 Content-Length 报头")
 )
 
 // Error JSON-RPC 返回的错误类型
@@ -78,6 +76,13 @@ func (id *ID) UnmarshalJSON(data []byte) error {
 
 	id.isNumber = false
 	return json.Unmarshal(data, &id.alpha)
+}
+
+func (id *ID) String() string {
+	if id.isNumber {
+		return strconv.FormatInt(id.number, 10)
+	}
+	return id.alpha
 }
 
 // Transport 用于操作 JSON RPC 的传输层接口

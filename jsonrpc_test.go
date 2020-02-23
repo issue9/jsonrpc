@@ -99,3 +99,16 @@ func TestID_UnmarshalJSON(t *testing.T) {
 	a.NotError(json.Unmarshal([]byte(`{}`), req))
 	a.Nil(req.ID)
 }
+
+func TestID_String(t *testing.T) {
+	a := assert.New(t)
+
+	id := &ID{alpha: "123"}
+	a.Equal(id.String(), "123")
+
+	id.isNumber = true
+	a.Equal(id.String(), "0")
+
+	id.number = -133
+	a.Equal(id.String(), "-133")
+}

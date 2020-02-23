@@ -4,6 +4,8 @@ package jsonrpc
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -89,7 +91,7 @@ func (s *Server) read(t Transport) (func() error, error) {
 	}
 
 	if req.isEmpty() {
-		return nil, s.writeError(t, nil, CodeInvalidRequest, ErrInvalidRequest, nil)
+		return nil, s.writeError(t, nil, CodeInvalidRequest, errors.New("无效的请求内容"), nil)
 	}
 
 	return func() error {
@@ -106,7 +108,8 @@ func (s *Server) response(t Transport, req *request) error {
 
 	f, found := s.servers.Load(req.Method)
 	if !found {
-		return s.writeError(t, req.ID, CodeMethodNotFound, ErrMethodNotFound, nil)
+		msg := fmt.Errorf("未找到对应的服务 %s", req.Method)
+		return s.writeError(t, req.ID, CodeMethodNotFound, msg, nil)
 	}
 
 	resp, err := f.(*handler).call(req)
@@ -155,7 +158,8 @@ func (s *Server) request(t Transport, notify bool, method string, in, out interf
 	}
 
 	if resp.ID != nil && !req.ID.Equal(resp.ID) {
-		return ErrIDNotEqual
+		data := fmt.Sprintf("req.Method：%s，req.ID：%s， resp.ID：%s", req.Method, req.ID, resp.ID)
+		return NewErrorWithData(CodeInvalidParams, "无效的请求参数", data)
 	}
 
 	if resp.Error != nil {

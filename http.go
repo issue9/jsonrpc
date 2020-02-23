@@ -152,7 +152,7 @@ func (s *httpTransport) Read(v interface{}) error {
 
 	cl := s.r.Header.Get(contentLength)
 	if cl == "" {
-		return ErrMissContentLength
+		return errMissContentLength
 	}
 	l, err := strconv.ParseInt(cl, 10, 64)
 	if err != nil {
@@ -207,7 +207,7 @@ func validContentType(header string) error {
 		}
 	}
 	if !found {
-		return ErrInvalidContentType
+		return errInvalidContentType
 	}
 
 	for _, pair := range pairs[1:] {
@@ -215,7 +215,7 @@ func validContentType(header string) error {
 		if index > 0 &&
 			strings.ToLower(strings.TrimSpace(pair[:index])) == "charset" &&
 			strings.ToLower(strings.TrimSpace(pair[index+1:])) != charset {
-			return ErrInvalidContentType
+			return errInvalidContentType
 		}
 	}
 

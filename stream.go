@@ -80,7 +80,7 @@ func (s *streamTransport) Read(v interface{}) error {
 
 		index := strings.IndexByte(line, ':')
 		if index <= 0 {
-			return ErrInvalidHeader
+			return errInvalidHeader
 		}
 
 		v := strings.TrimSpace(line[index+1:])
@@ -100,7 +100,7 @@ func (s *streamTransport) Read(v interface{}) error {
 
 	switch {
 	case length < 0:
-		return ErrMissContentLength
+		return errMissContentLength
 	case length == 0:
 		return nil
 	}
