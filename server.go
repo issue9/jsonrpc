@@ -5,13 +5,14 @@ package jsonrpc
 import (
 	"encoding/json"
 	"sync"
+	"time"
 
-	"github.com/issue9/autoinc"
+	"github.com/issue9/unique"
 )
 
 // Server JSON RPC 服务实例
 type Server struct {
-	autoinc *autoinc.AutoInc
+	rands   *unique.Unique
 	servers sync.Map
 	before  func(string) error
 }
@@ -19,14 +20,13 @@ type Server struct {
 // NewServer 新的 Server 实例
 func NewServer() *Server {
 	return &Server{
-		autoinc: autoinc.New(0, 1, 200),
+		rands: unique.New(time.Now().Unix(), 1, time.Hour, "", 36),
 	}
 }
 
 func (s *Server) id() *ID {
 	return &ID{
-		isNumber: true,
-		number:   s.autoinc.MustID(),
+		alpha: s.rands.String(),
 	}
 }
 
