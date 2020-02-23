@@ -85,7 +85,6 @@ func (s *Server) Registers(methods map[string]interface{}) {
 func (s *Server) read(t Transport) (func() error, error) {
 	req := &request{}
 	if err := t.Read(req); err != nil {
-		// 解析 request 出错，没有 ID 返回。
 		return nil, s.writeError(t, nil, CodeParseError, err, nil)
 	}
 
@@ -101,7 +100,7 @@ func (s *Server) read(t Transport) (func() error, error) {
 func (s *Server) response(t Transport, req *request) error {
 	if s.before != nil {
 		if err := s.before(req.Method); err != nil {
-			return err
+			return s.writeError(t, req.ID, CodeMethodNotFound, err, nil)
 		}
 	}
 

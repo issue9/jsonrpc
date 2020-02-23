@@ -64,89 +64,134 @@ func TestServer_read(t *testing.T) {
 	a := assert.New(t)
 	srv := initServer(a)
 
-	write := func(w *bytes.Buffer, method string, obj *inType) {
-		data, err := json.Marshal(obj)
-		a.NotError(err)
-		req := &request{
-			Version: Version,
-			ID:      srv.id(),
-			Method:  method,
-			Params:  (*json.RawMessage)(&data),
-		}
-		data, err = json.Marshal(req)
-		a.NotError(err)
-		a.NotError(w.Write(data))
+	data := []*struct {
+		req string
+		err int // 0 表示无错误，其它表示对应的 Error.Code
+	}{
+		{
+			req: ``,
+			err: CodeParseError,
+		},
+
+		{
+			req: `{"jsonrpc"`,
+			err: CodeParseError,
+		},
+
+		{
+			req: `{}`,
+			err: CodeInvalidRequest,
+		},
+
+		{
+			req: `{"jsonrpc":"2.0"}`,
+		},
 	}
 
-	read := func(r *bytes.Buffer, code int, obj *outType) {
-		resp := &response{}
-		a.NotError(json.Unmarshal(r.Bytes(), resp))
-		if code != 0 {
-			a.NotNil(resp.Error).Equal(resp.Error.Code, code)
+	in := new(bytes.Buffer)
+	out := new(bytes.Buffer)
+	for i, item := range data {
+		in.Reset()
+		out.Reset()
+		in.WriteString(item.req)
+		f, err := srv.read(NewStreamTransport(false, in, out, nil))
+		a.NotError(err)
+
+		if item.err == 0 {
+			a.NotNil(f, "nil @ %d", i)
 		} else {
-			a.Nil(resp.Error)
-			a.NotError(json.Unmarshal(*resp.Result, obj))
+			a.Nil(f)
+
+			resp := &response{}
+			a.NotError(json.Unmarshal(out.Bytes(), resp))
+			a.NotNil(resp.Error).
+				Equal(resp.Error.Code, item.err, "not equal v1=%v,v2=%v @ %d", resp.Error.Code, item.err, i)
 		}
 	}
+}
 
+func TestServer_response(t *testing.T) {
+	a := assert.New(t)
+	srv := initServer(a)
 	srv.RegisterBefore(func(method string) error {
-		if method == "f2" {
-			return NewError(CodeMethodNotFound, "not found")
+		if method == "b2" {
+			return NewError(-32111, "not found")
+		}
+		if method == "b5" {
+			return errors.New("f5")
 		}
 		return nil
 	})
 
+	data := []*struct {
+		err    int // 0 表示无错误，其它表示对应的 Error.Code
+		in     *inType
+		out    *outType
+		method string
+	}{
+		{ // 正常
+			in:     &inType{Age: 18},
+			out:    &outType{Age: 18},
+			method: "f1",
+		},
+		{ // f2 抛出错误
+			in:     &inType{Age: 18},
+			method: "f2",
+			err:    CodeInvalidParams,
+		},
+		{ // 触发 before
+			in:     &inType{Age: 18},
+			method: "b2",
+			err:    -32111,
+		},
+		{ // 触发 before，普通错误
+			in:     &inType{Age: 18},
+			method: "b5",
+			err:    CodeMethodNotFound,
+		},
+		{ // 不存在
+			in:     &inType{Age: 18},
+			method: "not-exists",
+			err:    CodeMethodNotFound,
+		},
+	}
+
 	in := new(bytes.Buffer)
 	out := new(bytes.Buffer)
-	write(in, "f1", &inType{Last: "l", First: "F"})
-	f, err := srv.read(NewStreamTransport(false, in, out, nil))
-	a.NotError(err).NotNil(f)
-	a.NotError(f())
-	o := &outType{}
-	read(out, 0, o)
-	a.Equal(o.Name, "Fl").Empty(o.Age)
+	for i, item := range data {
+		in.Reset()
+		out.Reset()
 
-	// 触发 before
-	in.Reset()
-	out.Reset()
-	write(in, "f2", &inType{Last: "l", First: "F"})
-	f, err = srv.read(NewStreamTransport(false, in, out, nil))
-	a.NotError(err).NotNil(f)
-	err = f() // before 此处调用
-	err2, ok := err.(*Error)
-	a.True(ok).Equal(err2.Code, CodeMethodNotFound)
+		data, err := json.Marshal(item.in)
+		a.NotError(err)
+		req := &request{
+			Version: Version,
+			ID:      srv.id(),
+			Method:  item.method,
+			Params:  (*json.RawMessage)(&data),
+		}
+		data, err = json.Marshal(req)
+		a.NotError(err)
+		a.NotError(in.Write(data))
 
-	// 写入任意数据，read 返回两个值都为 nil
-	in.Reset()
-	out.Reset()
-	in.WriteString("xxx:wes-->")
-	f, err = srv.read(NewStreamTransport(false, in, out, nil))
-	a.NotError(err).Nil(f)
+		f, err := srv.read(NewStreamTransport(false, in, out, nil))
+		a.NotError(err).NotNil(f)
+		a.NotError(f())
 
-	// request.params == nil
-	in.Reset()
-	out.Reset()
-	write(in, "f1", nil)
-	f, err = srv.read(NewStreamTransport(false, in, out, nil))
-	a.NotError(err).NotNil(f)
-	a.NotError(f())
+		resp := &response{}
+		a.NotError(json.Unmarshal(out.Bytes(), resp))
 
-	// request 写入为空值
-	in.Reset()
-	out.Reset()
-	in.Write([]byte("{}"))
-	f, err = srv.read(NewStreamTransport(false, in, out, nil))
-	a.NotError(err).Nil(f)
-	o = &outType{}
-	read(out, CodeInvalidRequest, o)
+		if item.err == 0 {
+			a.Nil(resp.Error, "nil @ %d", i)
 
-	// 空的请求体，无法解析至 request
-	in.Reset()
-	out.Reset()
-	f, err = srv.read(NewStreamTransport(false, in, out, nil))
-	a.NotError(err).Nil(f)
-	o = &outType{}
-	read(out, CodeParseError, o)
+			out := &outType{}
+			a.NotError(json.Unmarshal(*resp.Result, out))
+			a.Equal(item.out, out)
+		} else {
+			a.NotNil(resp.Error).
+				Equal(resp.Error.Code, item.err, "not equal v1=%v,v2=%v @ %d", resp.Error.Code, item.err, i)
+		}
+	}
 }
 
 func TestServer_Registers(t *testing.T) {
