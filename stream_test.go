@@ -3,122 +3,205 @@
 package jsonrpc
 
 import (
-	"context"
-	"io/ioutil"
-	"log"
-	"net"
+	"bytes"
+	"math"
 	"testing"
-	"time"
 
 	"github.com/issue9/assert"
 )
 
 var _ Transport = &streamTransport{}
 
-func TestNewSocketTransport(t *testing.T) {
+func TestStreamTransport_Read(t *testing.T) {
 	a := assert.New(t)
-	srv := initServer(a)
 
-	exit := make(chan struct{}, 1)
-	ctx, cancel := context.WithCancel(context.Background())
+	data := []*struct {
+		header bool // 是否带报头
+		in     string
+		req    *request
+		err    bool
+	}{
+		{
+			err: true,
+		},
+		{
+			in:  `{}`,
+			req: &request{},
+		},
+		{ // 没有报头，出错
+			header: true,
+			in:     `{}`,
+			req:    &request{},
+			err:    true,
+		},
 
-	srvConn, clientConn := net.Pipe()
+		{ // 没有报头，出错
+			in:  `{"jsonrpc":"2.0","id":"1"}`,
+			req: &request{Version: Version, ID: &ID{alpha: "1"}},
+		},
+		{
+			header: true,
+			in:     `{"jsonrpc":"2.0","id":"1"}`,
+			req:    &request{Version: Version, ID: &ID{alpha: "1"}},
+			err:    true,
+		},
 
-	go func() {
-		conn := srv.NewConn(NewSocketTransport(false, srvConn), log.New(ioutil.Discard, "", 0))
-		err := conn.Serve(ctx)
-		a.Equal(err, context.Canceled)
-		exit <- struct{}{}
-	}()
-	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
+		{
+			in:  `}`,
+			req: &request{},
+			err: true,
+		},
+		{
+			header: true,
+			in:     `}`,
+			req:    &request{},
+			err:    true,
+		},
 
-	client := srv.NewConn(NewSocketTransport(false, clientConn), nil)
+		{
+			header: true,
+			in:     "Content-Length:2\r\n\r\n{}",
+			req:    &request{},
+		},
+		{
+			header: true,
+			in:     "Content-Type: application/json-rpc;charset=utf-8\r\nContent-Length:3\r\n\r\n{ }",
+			req:    &request{},
+		},
+		{ // 包含非标准报头
+			header: true,
+			in:     "User-Agent:go\r\nContent-Type: application/json-rpc;charset=utf-8\r\nContent-Length:3\r\n\r\n{ }",
+			req:    &request{},
+		},
+		{
+			header: true,
+			in:     "Content-Type: application/json-rpc;charset=utf-8\r\nContent-Length:17\r\n\r\n{\"jsonrpc\":\"2.0\"}",
+			req:    &request{Version: Version},
+		},
 
-	err := client.Notify("f1", &inType{Age: 18})
-	a.NotError(err)
+		{ // 长度不正确
+			header: true,
+			in:     "Content-Length:2\r\n\r\n{ }",
+			req:    &request{},
+			err:    true,
+		},
+		{ // 长度为无效的数值
+			header: true,
+			in:     "Content-Length:NaN\r\n\r\n{ }",
+			req:    &request{},
+			err:    true,
+		},
+		{ // 未指定长度
+			header: true,
+			in:     "{}",
+			req:    &request{},
+			err:    true,
+		},
+		{ // 报头格式不正确
+			header: true,
+			in:     "Content-Type-xx\r\n\r\n{}",
+			req:    &request{},
+			err:    true,
+		},
+		{ // 无效的 content-type
+			header: true,
+			in:     "Content-Type:text/xml\r\n\r\n{}",
+			req:    &request{},
+			err:    true,
+		},
+		{ // 无效的 content-type
+			header: true,
+			in:     "Content-Type:application/jsonrequest;charset=gbk\r\n\r\n{}",
+			req:    &request{},
+			err:    true,
+		},
+		{ // 无效的 content-length
+			header: true,
+			in:     "Content-length:-1\r\n\r\n{}",
+			req:    &request{},
+			err:    true,
+		},
+		{ // 未指定 content-length，无法读取内容
+			header: true,
+			in:     "Content-Type:application/json\r\n\r\n{\"jsonrpc\":\"2.0\"}",
+			req:    &request{},
+		},
+	}
 
-	out := &outType{}
-	err = client.Send("f1", &inType{Age: 18}, out)
-	a.NotError(err).Equal(out.Age, 18)
+	for i, item := range data {
+		in, out := bytes.NewBufferString(item.in), new(bytes.Buffer)
+		transport := NewStreamTransport(item.header, in, out, nil)
+		a.NotError(transport)
 
-	out = &outType{}
-	err = client.Send("f1", &inType{Age: 19, Last: "l"}, out)
-	a.NotError(err).Equal(out.Age, 19).Equal(out.Name, "l")
+		req := &request{}
+		err := transport.Read(req)
 
-	// 发送空数据
-	out = &outType{}
-	err = client.Send("f1", nil, out)
-	a.NotError(err).Equal(out.Age, 0)
+		if item.err {
+			a.Error(err, "not error @ %d", i)
+			continue
+		}
 
-	// 检测抛出错误是否正确
-	out = &outType{}
-	err = client.Send("f2", &inType{Age: 19, Last: "l"}, out)
-	err1, ok := err.(*Error)
-	a.True(ok).Equal(err1.Code, CodeInvalidParams) // 由函数 f2 抛出的错误 *Error
-
-	// 检测抛出错误是否正确
-	out = &outType{}
-	err = client.Send("f3", &inType{Age: 19, Last: "l"}, out)
-	err1, ok = err.(*Error)
-	a.True(ok).Equal(err1.Code, CodeInternalError) // 由函数 f3 抛出的普通错误
-
-	cancel()
-	// 触发 ctx 的退出事件
-	err = client.Notify("f1", &inType{})
-	a.NotError(err)
-	<-exit
+		a.NotError(err, "error %s @ %d", err, i)
+		a.Equal(req, item.req, "not equal @ %d", i)
+	}
 }
 
-func TestNewSocketTransport_withHeader(t *testing.T) {
+func TestStreamTransport_Write(t *testing.T) {
 	a := assert.New(t)
-	srv := initServer(a)
 
-	exit := make(chan struct{}, 1)
-	ctx, cancel := context.WithCancel(context.Background())
+	data := []*struct {
+		header bool
+		resp   *response
+		out    string
+		err    bool
+	}{
+		{
+			out: "null",
+		},
+		{
+			header: true,
+			out:    "Content-Type: application/json;charset=utf-8\r\nContent-Length: 4\r\n\r\nnull",
+		},
 
-	srvConn, clientConn := net.Pipe()
+		{
+			resp: &response{},
+			out:  `{"jsonrpc":""}`, // jsonrpc 这个字段是非缺省字段
+		},
+		{
+			header: true,
+			resp:   &response{},
+			out:    "Content-Type: application/json;charset=utf-8\r\nContent-Length: 14\r\n\r\n{\"jsonrpc\":\"\"}", // jsonrpc 这个字段是非缺省字段
+		},
 
-	go func() {
-		conn := srv.NewConn(NewSocketTransport(true, srvConn), log.New(ioutil.Discard, "", 0))
-		err := conn.Serve(ctx)
-		a.Equal(err, context.Canceled)
-		exit <- struct{}{}
-	}()
-	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
+		{
+			header: true,
+			resp:   &response{ID: &ID{isNumber: true, number: 22}},
+			out:    "Content-Type: application/json;charset=utf-8\r\nContent-Length: 22\r\n\r\n{\"jsonrpc\":\"\",\"id\":22}", // jsonrpc 这个字段是非缺省字段
+		},
+	}
 
-	client := srv.NewConn(NewSocketTransport(true, clientConn), nil)
+	for i, item := range data {
+		in, out := new(bytes.Buffer), new(bytes.Buffer)
+		transport := NewStreamTransport(item.header, in, out, nil)
+		a.NotNil(transport)
 
-	err := client.Notify("f1", &inType{Age: 18})
-	a.NotError(err)
+		err := transport.Write(item.resp)
+		if item.err {
+			a.Error(err, "not err at %d", i)
+			continue
+		}
 
-	out := &outType{}
-	err = client.Send("f1", &inType{Age: 18}, out)
-	a.NotError(err).Equal(out.Age, 18)
+		a.NotError(err, "err %v @ %d", err, i)
+		a.Equal(out.String(), item.out, "not equal v1=%s,v2=%s, at %d", out.String(), item.out, i)
+	}
 
-	out = &outType{}
-	err = client.Send("f1", &inType{Age: 19, Last: "l"}, out)
-	a.NotError(err).Equal(out.Age, 19).Equal(out.Name, "l")
-
-	// 发送空数据
-	out = &outType{}
-	err = client.Send("f1", nil, out)
-	a.NotError(err).Equal(out.Age, 0)
-
-	// 检测抛出错误是否正确
-	out = &outType{}
-	err = client.Send("f2", &inType{Age: 19, Last: "l"}, out)
-	err1, ok := err.(*Error)
-	a.True(ok).Equal(err1.Code, CodeInvalidParams) // 由函数 f2 抛出的错误 *Error
-
-	// 检测抛出错误是否正确
-	out = &outType{}
-	err = client.Send("f3", &inType{Age: 19, Last: "l"}, out)
-	err1, ok = err.(*Error)
-	a.True(ok).Equal(err1.Code, CodeInternalError) // 由函数 f3 抛出的普通错误
-
-	cancel()
-	// 触发 ctx 的退出事件
-	err = client.Notify("f1", &inType{})
-	a.NotError(err)
-	<-exit
+	// 非正确输出
+	type failedTester struct {
+		Value float64
+	}
+	in, out := new(bytes.Buffer), new(bytes.Buffer)
+	transport := NewStreamTransport(true, in, out, nil)
+	a.NotNil(transport)
+	a.Error(transport.Write(&failedTester{Value: math.NaN()}))
+	a.NotError(transport.Close())
 }
