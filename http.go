@@ -5,7 +5,6 @@ package jsonrpc
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,14 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-)
-
-// 一些错误定义
-var (
-	ErrInvalidHeader      = errors.New("无效的报头格式")
-	ErrInvalidContentType = errors.New("无效的报头 Content-Type")
-	ErrMissContentLength  = errors.New("缺少 Content-Length 报头")
-	ErrIDNotEqual         = NewError(CodeInvalidParams, "ID 不相等")
 )
 
 var (

@@ -5,7 +5,10 @@
 // https://wiki.geekdream.com/Specification/json-rpc_2.0.html
 package jsonrpc
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+)
 
 // Version JSON RPC 的版本
 const Version = "2.0"
@@ -17,6 +20,16 @@ const (
 	CodeMethodNotFound = -32601
 	CodeInvalidParams  = -32602
 	CodeInternalError  = -32603
+)
+
+// 一些错误定义
+var (
+	ErrInvalidHeader      = errors.New("无效的报头格式")
+	ErrInvalidContentType = errors.New("无效的报头 Content-Type")
+	ErrMissContentLength  = errors.New("缺少 Content-Length 报头")
+	ErrIDNotEqual         = NewError(CodeInvalidParams, "ID 不相等")
+	ErrInvalidRequest     = NewError(CodeInvalidRequest, "无效的请求内容")
+	ErrMethodNotFound     = NewError(CodeMethodNotFound, "未找到对应的服务实现")
 )
 
 // Error JSON-RPC 返回的错误类型

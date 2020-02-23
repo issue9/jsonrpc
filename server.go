@@ -3,7 +3,6 @@
 package jsonrpc
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/issue9/autoinc"
@@ -89,7 +88,7 @@ func (s *Server) read(t Transport) (func() error, error) {
 	}
 
 	if req.isEmpty() {
-		return nil, s.writeError(t, nil, CodeInvalidRequest, errors.New("invalid request"), nil)
+		return nil, s.writeError(t, nil, CodeInvalidRequest, ErrInvalidRequest, nil)
 	}
 
 	return func() error {
@@ -106,7 +105,7 @@ func (s *Server) response(t Transport, req *request) error {
 
 	f, found := s.servers.Load(req.Method)
 	if !found {
-		return s.writeError(t, req.ID, CodeMethodNotFound, errors.New("method not found"), nil)
+		return s.writeError(t, req.ID, CodeMethodNotFound, ErrMethodNotFound, nil)
 	}
 
 	resp, err := f.(*handler).call(req)
