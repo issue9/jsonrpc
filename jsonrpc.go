@@ -12,15 +12,11 @@ const Version = "2.0"
 
 // JSON RPC 2.0 定义的错误代码
 const (
-	CodeParseError           = -32700
-	CodeInvalidRequest       = -32600
-	CodeMethodNotFound       = -32601
-	CodeInvalidParams        = -32602
-	CodeInternalError        = -32603
-	CodeServerErrorStart     = -32099
-	CodeServerErrorEnd       = -32000
-	CodeServerNotInitialized = -32002
-	CodeUnknownErrorCode     = -32001
+	CodeParseError     = -32700
+	CodeInvalidRequest = -32600
+	CodeMethodNotFound = -32601
+	CodeInvalidParams  = -32602
+	CodeInternalError  = -32603
 )
 
 // ID 用于表示唯一的请求 ID，可以是数值，字符串
@@ -31,15 +27,15 @@ type ID struct {
 }
 
 // Equal 两个 ID 是否相等
-func (id *ID) Equal(id2 *ID) bool {
-	if id.isNumber != id2.isNumber {
+func (id *ID) Equal(val *ID) bool {
+	if id.isNumber != val.isNumber {
 		return false
 	}
 
 	if id.isNumber {
-		return id.number == id2.number
+		return id.number == val.number
 	}
-	return id.alpha == id2.alpha
+	return id.alpha == val.alpha
 }
 
 func (id *ID) MarshalJSON() ([]byte, error) {
