@@ -19,6 +19,18 @@ const (
 	CodeInternalError  = -32603
 )
 
+// Error JSON-RPC 返回的错误类型
+type Error struct {
+	// 错误代码
+	Code int `json:"code"`
+
+	// 错误的简短描述
+	Message string `json:"message"`
+
+	// 详细的错误描述信息，可以为空
+	Data interface{} `json:"data,omitempty"`
+}
+
 // ID 用于表示唯一的请求 ID，可以是数值，字符串
 type ID struct {
 	number   int64
@@ -104,18 +116,6 @@ type response struct {
 	ID *ID `json:"id,omitempty"`
 }
 
-// Error JSON-RPC 返回的错误类型
-type Error struct {
-	// 错误代码
-	Code int `json:"code"`
-
-	// 错误的简短描述
-	Message string `json:"message"`
-
-	// 详细的错误描述信息，可以为空
-	Data interface{} `json:"data,omitempty"`
-}
-
 // NewError 新的 Error 对象
 func NewError(code int, msg string) *Error {
 	return NewErrorWithData(code, msg, nil)
@@ -128,6 +128,14 @@ func NewErrorWithData(code int, msg string, data interface{}) *Error {
 		Message: msg,
 		Data:    data,
 	}
+}
+
+func NewErrorWithError(code int, err error) *Error {
+	if err2, ok := err.(*Error); ok {
+		return err2
+	}
+
+	return NewError(code, err.Error())
 }
 
 func (err *Error) Error() string {

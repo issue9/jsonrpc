@@ -3,10 +3,7 @@
 package jsonrpc
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
-	"reflect"
 	"sync"
 
 	"github.com/issue9/autoinc"
@@ -17,11 +14,6 @@ type Server struct {
 	autoinc *autoinc.AutoInc
 	servers sync.Map
 	before  func(string) error
-}
-
-type handler struct {
-	f       reflect.Value
-	in, out reflect.Type
 }
 
 // NewServer 新的 Server 实例
@@ -87,37 +79,6 @@ func (s *Server) Registers(methods map[string]interface{}) {
 	}
 }
 
-var errType = reflect.TypeOf((*error)(nil)).Elem()
-
-func newHandler(f interface{}) *handler {
-	t := reflect.TypeOf(f)
-
-	if t.Kind() != reflect.Func ||
-		t.NumIn() != 3 ||
-		t.In(0).Kind() != reflect.Bool ||
-		t.In(1).Kind() != reflect.Ptr ||
-		t.In(2).Kind() != reflect.Ptr ||
-		!t.Out(0).Implements(errType) {
-		panic(fmt.Sprintf("函数 %s 签名不正确", t.String()))
-	}
-
-	in := t.In(1).Elem()
-	if in.Kind() == reflect.Func || in.Kind() == reflect.Ptr || in.Kind() == reflect.Invalid {
-		panic(fmt.Sprintf("函数 %s 签名不正确", t.String()))
-	}
-
-	out := t.In(2).Elem()
-	if out.Kind() == reflect.Func || out.Kind() == reflect.Ptr || out.Kind() == reflect.Invalid {
-		panic(fmt.Sprintf("函数 %s 签名不正确", t.String()))
-	}
-
-	return &handler{
-		f:   reflect.ValueOf(f),
-		in:  in,
-		out: out,
-	}
-}
-
 // 可能返回 nil,nil 的情况
 //
 // 如果返回的函数为 nil，表示不需要调用函数，即已经输出了错误信息。
@@ -145,34 +106,17 @@ func (s *Server) response(t Transport, req *request) error {
 		return s.writeError(t, req.ID, CodeMethodNotFound, errors.New("method not found"), nil)
 	}
 
-	h := f.(*handler)
-
-	in := reflect.New(h.in)
-	if req.Params != nil {
-		if err := json.Unmarshal(*req.Params, in.Interface()); err != nil {
-			return s.writeError(t, req.ID, CodeParseError, err, nil)
-		}
+	h, ok := f.(*handler)
+	if !ok {
+		panic("处理函数类型不正确")
 	}
 
-	notify := req.ID == nil
-	out := reflect.New(h.out)
-	if errVal := h.f.Call([]reflect.Value{reflect.ValueOf(notify), in, out}); !errVal[0].IsNil() {
-		return s.writeError(t, req.ID, CodeInternalError, errVal[0].Interface().(error), nil)
-	}
-
-	if notify {
-		return nil
-	}
-
-	data, err := json.Marshal(out.Interface())
+	resp, err := h.call(req)
 	if err != nil {
-		return err
+		return s.writeError(t, req.ID, CodeParseError, err, nil)
 	}
-
-	resp := &response{
-		Version: Version,
-		Result:  (*json.RawMessage)(&data),
-		ID:      req.ID,
+	if resp == nil {
+		return nil
 	}
 	return t.Write(resp)
 }

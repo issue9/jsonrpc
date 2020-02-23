@@ -16,7 +16,7 @@ var (
 	_ json.Unmarshaler = &ID{}
 )
 
-func TestRequestID_equal(t *testing.T) {
+func TestID_Equal(t *testing.T) {
 	a := assert.New(t)
 
 	v1 := &ID{isNumber: true}
@@ -40,7 +40,7 @@ func TestRequestID_equal(t *testing.T) {
 	a.False(v1.Equal(v2))
 }
 
-func TestRequestID_MarshalJSON(t *testing.T) {
+func TestID_MarshalJSON(t *testing.T) {
 	a := assert.New(t)
 
 	var id *ID
@@ -64,7 +64,7 @@ func TestRequestID_MarshalJSON(t *testing.T) {
 	a.NotError(err).Equal(string(data), "\"11\"")
 }
 
-func TestRequestID_UnmarshalJSON(t *testing.T) {
+func TestID_UnmarshalJSON(t *testing.T) {
 	a := assert.New(t)
 
 	var id = &ID{}
