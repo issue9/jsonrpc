@@ -35,18 +35,14 @@ func (s *Server) NewConn(t Transport, errlog *log.Logger) *Conn {
 //
 // 仅发送 in 至服务端，会忽略服务端返回的信息。
 func (conn *Conn) Notify(method string, in interface{}) error {
-	return conn.request(true, method, in, nil)
+	return conn.server.request(conn.transport, true, method, in, nil)
 }
 
 // Send 发送请求内容
 //
 // 发送数据 in 至服务，并获取返回的内容填充至 out。
 func (conn *Conn) Send(method string, in, out interface{}) error {
-	return conn.request(false, method, in, out)
-}
-
-func (conn *Conn) request(notify bool, method string, in, out interface{}) error {
-	return conn.server.request(conn.transport, notify, method, in, out)
+	return conn.server.request(conn.transport, false, method, in, out)
 }
 
 // Serve 作为服务端运行
