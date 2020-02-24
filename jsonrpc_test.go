@@ -91,11 +91,11 @@ func TestID_UnmarshalJSON(t *testing.T) {
 		Equal(id.number, 0).
 		Empty(id.alpha)
 
-	req := &request{}
+	req := &body{}
 	a.NotError(json.Unmarshal([]byte(`{"id":0}`), req))
 	a.Equal(req.ID.number, 0).True(req.ID.isNumber)
 
-	req = &request{}
+	req = &body{}
 	a.NotError(json.Unmarshal([]byte(`{}`), req))
 	a.Nil(req.ID)
 }

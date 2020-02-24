@@ -102,40 +102,35 @@ type Transport interface {
 	Close() error
 }
 
-type request struct {
+type body struct {
 	// 指定 JSON-RPC 协议版本的字符串
 	Version string `json:"jsonrpc"`
 
-	// 已建立客户端的唯一标识 id，值必须包含一个字符串、数值或 NULL 空值。
-	// 如果不包含该成员则被认定为是一个通知。该值一般不为 NULL，若为数值则不应该包含小数。
+	// ID 返回请求端的 ID，如果检查 ID 失败时，返回空值
 	ID *ID `json:"id,omitempty"`
 
 	// 包含所要调用方法名称的字符串
 	//
 	// 以 rpc 开头的方法名，用英文句号（U+002E or ASCII 46）
 	// 连接的为预留给 rpc 内部的方法名及扩展名，且不能在其他地方使用。
-	Method string `json:"method"`
+	Method string `json:"method,omitempty"`
 
 	// 调用方法所需要的结构化参数值，该成员参数可以被省略。
 	Params *json.RawMessage `json:"params,omitempty"`
-}
-
-type response struct {
-	// 指定 JSON-RPC 协议版本的字符串
-	Version string `json:"jsonrpc"`
 
 	// 成功时的返回结果，如果不成功，则不应该输出该对象。
 	Result *json.RawMessage `json:"result,omitempty"`
 
 	// 失败时的返回结果，如果成功，则不应该输出该对象。
 	Error *Error `json:"error,omitempty"`
-
-	// ID 返回请求端的 ID，如果检查 ID 失败时，返回空值
-	ID *ID `json:"id,omitempty"`
 }
 
-func (req *request) isEmpty() bool {
-	return req.Version == "" && req.ID == nil && req.Method == "" && req.Params == nil
+func (b *body) isRequest() bool {
+	return b.Method != "" || b.Params != nil
+}
+
+func (b *body) isEmptyRequest() bool {
+	return b.Version == "" && b.ID == nil && b.Method == "" && b.Params == nil
 }
 
 // NewError 新的 Error 对象

@@ -125,7 +125,7 @@ func TestHandler_call(t *testing.T) {
 
 	for i, item := range data {
 		in := []byte(item.in)
-		req := &request{
+		req := &body{
 			Version: Version,
 			ID:      &ID{isNumber: true, number: 1},
 			Method:  "f1",

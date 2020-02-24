@@ -85,12 +85,12 @@ func (s *Server) Registers(methods map[string]interface{}) {
 //
 // 如果返回的函数为 nil，表示不需要调用函数，即已经输出了错误信息。
 func (s *Server) read(t Transport) (func() error, error) {
-	req := &request{}
+	req := &body{}
 	if err := t.Read(req); err != nil {
 		return nil, s.writeError(t, nil, CodeParseError, err, nil)
 	}
 
-	if req.isEmpty() {
+	if req.isEmptyRequest() {
 		return nil, s.writeError(t, nil, CodeInvalidRequest, errors.New("无效的请求内容"), nil)
 	}
 
@@ -99,7 +99,7 @@ func (s *Server) read(t Transport) (func() error, error) {
 	}, nil
 }
 
-func (s *Server) response(t Transport, req *request) error {
+func (s *Server) response(t Transport, req *body) error {
 	if s.before != nil {
 		if err := s.before(req.Method); err != nil {
 			return s.writeError(t, req.ID, CodeMethodNotFound, err, nil)
@@ -123,7 +123,7 @@ func (s *Server) response(t Transport, req *request) error {
 }
 
 func (s *Server) writeError(t Transport, id *ID, code int, err error, data interface{}) error {
-	resp := &response{
+	resp := &body{
 		Version: Version,
 		ID:      id,
 	}
@@ -138,42 +138,44 @@ func (s *Server) writeError(t Transport, id *ID, code int, err error, data inter
 }
 
 // 作为客户端向服务端主动发送请求
-func (s *Server) request(t Transport, notify bool, method string, in, out interface{}) error {
+func (s *Server) request(t Transport, notify bool, method string, in interface{}) (func(interface{}) error, error) {
 	req, err := s.buildRequest(method, notify, in)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := t.Write(req); err != nil {
-		return err
+		return nil, err
 	}
 
 	if notify {
-		return nil
+		return nil, nil
 	}
 
-	resp := &response{}
-	if err := t.Read(resp); err != nil {
-		return err
-	}
+	return func(out interface{}) error {
+		resp := &body{}
+		if err := t.Read(resp); err != nil {
+			return err
+		}
 
-	if resp.ID != nil && !req.ID.Equal(resp.ID) {
-		data := fmt.Sprintf("req.Method：%s，req.ID：%s， resp.ID：%s", req.Method, req.ID, resp.ID)
-		return NewErrorWithData(CodeInvalidParams, "无效的请求参数", data)
-	}
+		if resp.ID != nil && !req.ID.Equal(resp.ID) {
+			data := fmt.Sprintf("req.Method：%s，req.ID：%s， resp.ID：%s", req.Method, req.ID, resp.ID)
+			return NewErrorWithData(CodeInvalidParams, "无效的请求参数", data)
+		}
 
-	if resp.Error != nil {
-		return resp.Error
-	}
+		if resp.Error != nil {
+			return resp.Error
+		}
 
-	if resp.Result == nil {
-		return nil
-	}
-	return json.Unmarshal(*resp.Result, out)
+		if resp.Result == nil {
+			return nil
+		}
+		return json.Unmarshal(*resp.Result, out)
+	}, nil
 }
 
 // 构建作为客户端时的请求对象
-func (s *Server) buildRequest(method string, notify bool, in interface{}) (*request, error) {
+func (s *Server) buildRequest(method string, notify bool, in interface{}) (*body, error) {
 	var params *json.RawMessage
 	if in != nil {
 		data, err := json.Marshal(in)
@@ -183,7 +185,7 @@ func (s *Server) buildRequest(method string, notify bool, in interface{}) (*requ
 		params = (*json.RawMessage)(&data)
 	}
 
-	req := &request{
+	req := &body{
 		Version: Version,
 		Method:  method,
 		Params:  params,

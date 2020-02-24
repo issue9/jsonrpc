@@ -134,7 +134,14 @@ func (h *HTTPConn) request(method string, notify bool, in, out interface{}) erro
 		}
 	}()
 
-	return h.server.request(t, notify, method, in, out)
+	f, err := h.server.request(t, notify, method, in)
+	if err != nil {
+		return err
+	}
+	if f == nil {
+		return nil
+	}
+	return f(out)
 }
 
 // 声明基于 HTTP 的 Transport 实例

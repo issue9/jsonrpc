@@ -107,7 +107,7 @@ func TestServer_read(t *testing.T) {
 		} else {
 			a.Nil(f)
 
-			resp := &response{}
+			resp := &body{}
 			a.NotError(json.Unmarshal(out.Bytes(), resp))
 			a.NotNil(resp.Error).
 				Equal(resp.Error.Code, item.err, "not equal v1=%v,v2=%v @ %d", resp.Error.Code, item.err, i)
@@ -169,7 +169,7 @@ func TestServer_response(t *testing.T) {
 
 		data, err := json.Marshal(item.in)
 		a.NotError(err)
-		req := &request{
+		req := &body{
 			Version: Version,
 			ID:      srv.id(),
 			Method:  item.method,
@@ -183,7 +183,7 @@ func TestServer_response(t *testing.T) {
 		a.NotError(err).NotNil(f)
 		a.NotError(f())
 
-		resp := &response{}
+		resp := &body{}
 		a.NotError(json.Unmarshal(out.Bytes(), resp))
 
 		if item.err == 0 {

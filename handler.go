@@ -44,7 +44,7 @@ func newHandler(f interface{}) *handler {
 	}
 }
 
-func (h *handler) call(req *request) (*response, error) {
+func (h *handler) call(req *body) (*body, error) {
 	inValue := reflect.New(h.in)
 	if req.Params != nil {
 		if err := json.Unmarshal(*req.Params, inValue.Interface()); err != nil {
@@ -68,7 +68,7 @@ func (h *handler) call(req *request) (*response, error) {
 		return nil, NewErrorWithError(CodeParseError, err)
 	}
 
-	return &response{
+	return &body{
 		Version: Version,
 		Result:  (*json.RawMessage)(&data),
 		ID:      req.ID,
