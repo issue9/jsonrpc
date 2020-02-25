@@ -53,7 +53,7 @@ func (conn *Conn) Send(method string, in, callback interface{}) error {
 	}
 
 	cb := newCallback(callback)
-	conn.callbacks.Store(req.ID, cb)
+	conn.callbacks.Store(req.ID.String(), cb)
 
 	return nil
 }
@@ -100,12 +100,13 @@ func (conn *Conn) serve(body *body, wg *sync.WaitGroup) {
 		go func() {
 			defer wg.Done()
 
-			if f, found := conn.callbacks.Load(body.ID); found {
+			if f, found := conn.callbacks.Load(body.ID.String()); found {
 				if err := f.(*callback).call(body); err != nil {
 					conn.printErr(err)
 				}
+				conn.callbacks.Delete(body.ID.String())
 			} else {
-				conn.printErr(fmt.Sprintf("未找到 %s 的处理函数\n", body.ID))
+				conn.printErr(fmt.Sprintf("未找到 %s 的处理函数,%+v\n", body.ID, body))
 			}
 		}()
 	} else {
