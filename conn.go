@@ -83,37 +83,44 @@ func (conn *Conn) Serve(ctx context.Context) (err error) {
 			return ctx.Err()
 		default:
 			body, err := conn.server.read(conn.transport)
-			if err != nil && conn.errlog != nil {
-				conn.errlog.Println(err)
+			if err != nil {
+				conn.printErr(err)
 				continue
 			}
 
-			wg.Add(1)
-
-			if !body.isRequest() {
-				go func() {
-					defer wg.Done()
-
-					f, found := conn.callbacks.Load(body.ID)
-					if found {
-						if err = f.(*callback).call(body); err != nil && conn.errlog != nil {
-							conn.errlog.Println(err)
-						}
-					} else {
-						if conn.errlog != nil {
-							conn.errlog.Printf("未找到 %s 的处理函数\n", body.ID)
-						}
-					}
-				}()
-			} else {
-				go func() {
-					defer wg.Done()
-
-					if err = conn.server.response(conn.transport, body); err != nil {
-						conn.errlog.Println(err)
-					}
-				}()
-			}
+			conn.serve(body, wg)
 		}
+	}
+}
+
+func (conn *Conn) serve(body *body, wg *sync.WaitGroup) {
+	wg.Add(1)
+
+	if !body.isRequest() {
+		go func() {
+			defer wg.Done()
+
+			if f, found := conn.callbacks.Load(body.ID); found {
+				if err := f.(*callback).call(body); err != nil {
+					conn.printErr(err)
+				}
+			} else {
+				conn.printErr(fmt.Sprintf("未找到 %s 的处理函数\n", body.ID))
+			}
+		}()
+	} else {
+		go func() {
+			defer wg.Done()
+
+			if err := conn.server.response(conn.transport, body); err != nil {
+				conn.printErr(err)
+			}
+		}()
+	}
+}
+
+func (conn *Conn) printErr(v interface{}) {
+	if conn.errlog != nil {
+		conn.errlog.Println(v)
 	}
 }
