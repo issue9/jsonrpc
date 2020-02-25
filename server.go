@@ -136,25 +136,7 @@ func (s *Server) writeError(t Transport, id *ID, code int, err error, data inter
 }
 
 // 作为客户端向服务端主动发送请求
-func (s *Server) request(t Transport, notify bool, method string, in interface{}) (*body, error) {
-	req, err := s.buildRequest(method, notify, in)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := t.Write(req); err != nil {
-		return nil, err
-	}
-
-	if notify {
-		return nil, nil
-	}
-
-	return req, nil
-}
-
-// 构建作为客户端时的请求对象
-func (s *Server) buildRequest(method string, notify bool, in interface{}) (*body, error) {
+func (s *Server) request(t Transport, notify bool, method string, in interface{}) (req *body, err error) {
 	var params *json.RawMessage
 	if in != nil {
 		data, err := json.Marshal(in)
@@ -164,13 +146,17 @@ func (s *Server) buildRequest(method string, notify bool, in interface{}) (*body
 		params = (*json.RawMessage)(&data)
 	}
 
-	req := &body{
+	req = &body{
 		Version: Version,
 		Method:  method,
 		Params:  params,
 	}
 	if !notify {
 		req.ID = s.id()
+	}
+
+	if err = t.Write(req); err != nil {
+		return nil, err
 	}
 
 	return req, nil
