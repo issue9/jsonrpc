@@ -179,9 +179,10 @@ func TestServer_response(t *testing.T) {
 		a.NotError(err)
 		a.NotError(in.Write(data))
 
-		f, err := srv.read(NewStreamTransport(false, in, out, nil))
-		a.NotError(err).NotNil(f)
-		a.NotError(f())
+		transport := NewStreamTransport(false, in, out, nil)
+		ret, err := srv.read(transport)
+		a.NotError(err).NotNil(ret)
+		a.NotError(srv.response(transport, ret))
 
 		resp := &body{}
 		a.NotError(json.Unmarshal(out.Bytes(), resp))

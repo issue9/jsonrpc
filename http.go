@@ -98,16 +98,12 @@ func (h *HTTPConn) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	f, err := h.server.read(t)
+	req, err := h.server.read(t)
 	if err != nil && h.errlog != nil {
 		h.errlog.Println(err)
 	}
 
-	if f == nil {
-		panic("f 不能为空值")
-	}
-
-	if err = f(); err != nil {
+	if err := h.server.response(t, req); err != nil && h.errlog != nil {
 		h.errlog.Println(err)
 	}
 }
@@ -118,11 +114,11 @@ func (h *HTTPConn) Notify(method string, params interface{}) error {
 }
 
 // Send 请求 JSON RPC 服务端
-func (h *HTTPConn) Send(method string, params, result interface{}) error {
-	return h.request(method, false, params, result)
+func (h *HTTPConn) Send(method string, params, callback interface{}) error {
+	return h.request(method, false, params, callback)
 }
 
-func (h *HTTPConn) request(method string, notify bool, in, out interface{}) error {
+func (h *HTTPConn) request(method string, notify bool, in, callback interface{}) error {
 	if h.url == "" {
 		panic("初始化时未声明 url 参数，无法作为客户端使用")
 	}
@@ -134,14 +130,21 @@ func (h *HTTPConn) request(method string, notify bool, in, out interface{}) erro
 		}
 	}()
 
-	f, err := h.server.request(t, notify, method, in)
+	_, err := h.server.request(t, notify, method, in)
 	if err != nil {
 		return err
 	}
-	if f == nil {
+	if notify {
 		return nil
 	}
-	return f(out)
+
+	resp := &body{}
+	if err := t.Read(resp); err != nil {
+		return err
+	}
+
+	cb := newCallback(callback)
+	return cb.call(resp)
 }
 
 // 声明基于 HTTP 的 Transport 实例

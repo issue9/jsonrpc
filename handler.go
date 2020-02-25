@@ -15,6 +15,33 @@ type handler struct {
 	in, out reflect.Type
 }
 
+// Send 的处理函数
+type callback struct {
+	f      reflect.Value
+	result reflect.Type
+}
+
+func newCallback(f interface{}) *callback {
+	t := reflect.TypeOf(f)
+
+	if t.Kind() != reflect.Func ||
+		t.NumIn() != 1 ||
+		t.In(0).Kind() != reflect.Ptr ||
+		!t.Out(0).Implements(errType) {
+		panic(fmt.Sprintf("函数 %s 签名不正确", t.String()))
+	}
+
+	in := t.In(0).Elem()
+	if in.Kind() == reflect.Func || in.Kind() == reflect.Ptr || in.Kind() == reflect.Invalid {
+		panic(fmt.Sprintf("函数 %s 签名不正确", t.String()))
+	}
+
+	return &callback{
+		f:      reflect.ValueOf(f),
+		result: in,
+	}
+}
+
 func newHandler(f interface{}) *handler {
 	t := reflect.TypeOf(f)
 
@@ -73,4 +100,23 @@ func (h *handler) call(req *body) (*body, error) {
 		Result:  (*json.RawMessage)(&data),
 		ID:      req.ID,
 	}, nil
+}
+
+func (c *callback) call(body *body) error {
+	if body.Error != nil {
+		return body.Error
+	}
+
+	rv := reflect.New(c.result)
+	if body.Result != nil {
+		if err := json.Unmarshal(*body.Result, rv.Interface()); err != nil {
+			return err
+		}
+	}
+
+	ret := c.f.Call([]reflect.Value{rv})
+	if !ret[0].IsNil() {
+		return ret[0].Interface().(error)
+	}
+	return nil
 }

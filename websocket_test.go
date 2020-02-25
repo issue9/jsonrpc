@@ -44,25 +44,17 @@ func TestNewWebsocketTransport(t *testing.T) {
 	err = client.Notify("f1", &inType{Age: 18})
 	a.NotError(err)
 
-	out := &outType{}
-	err = client.Send("f1", &inType{Age: 18}, out)
-	a.NotError(err).Equal(out.Age, 18)
+	err = client.Send("f1", &inType{Age: 18}, func(out *outType) error {
+		a.Equal(out.Age, 18)
+		return nil
+	})
+	a.NotError(err)
 
-	out = &outType{}
-	err = client.Send("f1", &inType{Age: 19, Last: "l"}, out)
-	a.NotError(err).Equal(out.Age, 19).Equal(out.Name, "l")
-
-	// 检测抛出错误是否正确
-	out = &outType{}
-	err = client.Send("f2", &inType{Age: 19, Last: "l"}, out)
-	err1, ok := err.(*Error)
-	a.True(ok).Equal(err1.Code, CodeInvalidParams) // 由函数 f2 抛出的错误 *Error
-
-	// 检测抛出错误是否正确
-	out = &outType{}
-	err = client.Send("f3", &inType{Age: 19, Last: "l"}, out)
-	err1, ok = err.(*Error)
-	a.True(ok).Equal(err1.Code, CodeInternalError) // 由函数 f3 抛出的普通错误
+	err = client.Send("f1", &inType{Age: 19, Last: "l"}, func(out *outType) error {
+		a.Equal(out.Age, 19).Equal(out.Name, "l")
+		return nil
+	})
+	a.NotError(err)
 
 	cancel()
 	// 触发 ctx 的退出事件

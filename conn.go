@@ -16,6 +16,7 @@ type Conn struct {
 	server    *Server
 	errlog    *log.Logger
 	transport Transport
+	callbacks sync.Map
 }
 
 // NewConn 创建长链接的 JSON RPC 实例
@@ -41,13 +42,20 @@ func (conn *Conn) Notify(method string, in interface{}) error {
 
 // Send 发送请求内容
 //
-// 发送数据 in 至服务，并获取返回的内容填充至 out。
-func (conn *Conn) Send(method string, in, out interface{}) error {
-	f, err := conn.server.request(conn.transport, false, method, in)
+// 发送数据 in 至服务，在返回数据时，调用 callback 进行处理。
+// callback 的原型如下：
+//  func(result interface{}) error
+// 参数 result 必须为一个指针，且函数返回一个 error。
+func (conn *Conn) Send(method string, in, callback interface{}) error {
+	req, err := conn.server.request(conn.transport, false, method, in)
 	if err != nil {
 		return err
 	}
-	return f(out)
+
+	cb := newCallback(callback)
+	conn.callbacks.Store(req.ID, cb)
+
+	return nil
 }
 
 // Serve 作为服务端运行
@@ -74,22 +82,38 @@ func (conn *Conn) Serve(ctx context.Context) (err error) {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			f, err := conn.server.read(conn.transport)
+			body, err := conn.server.read(conn.transport)
 			if err != nil && conn.errlog != nil {
 				conn.errlog.Println(err)
 				continue
 			}
-			if f == nil {
-				continue
-			}
 
 			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if err = f(); err != nil {
-					conn.errlog.Println(err)
-				}
-			}()
+
+			if !body.isRequest() {
+				go func() {
+					defer wg.Done()
+
+					f, found := conn.callbacks.Load(body.ID)
+					if found {
+						if err = f.(*callback).call(body); err != nil && conn.errlog != nil {
+							conn.errlog.Println(err)
+						}
+					} else {
+						if conn.errlog != nil {
+							conn.errlog.Printf("未找到 %s 的处理函数\n", body.ID)
+						}
+					}
+				}()
+			} else {
+				go func() {
+					defer wg.Done()
+
+					if err = conn.server.response(conn.transport, body); err != nil {
+						conn.errlog.Println(err)
+					}
+				}()
+			}
 		}
 	}
 }
