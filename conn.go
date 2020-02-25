@@ -42,10 +42,10 @@ func (conn *Conn) Notify(method string, in interface{}) error {
 
 // Send 发送请求内容
 //
-// 发送数据 in 至服务，在返回数据时，调用 callback 进行处理。
+// 发送数据 in 至服务，在获得返回数据时，调用 callback 进行处理。
 // callback 的原型如下：
 //  func(result interface{}) error
-// 参数 result 必须为一个指针，且函数返回一个 error。
+// 参数 result 必须为一个指针，表示返回的数据对象；且函数返回一个 error。
 func (conn *Conn) Send(method string, in, callback interface{}) error {
 	req, err := conn.server.request(conn.transport, false, method, in)
 	if err != nil {

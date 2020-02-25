@@ -16,11 +16,16 @@ JSON RPC 2.0 的实现，目前实现了对以下传输层的接口：
 
 ```go
 srv := NewServer()
-conn := srv.NewConn(NewSocketTransport(), nil)
 listen, err := net.Listen("tcp", ":8080")
 for {
     c, err := listen.Accept()
-    conn.Serve(ctx, NewSocketTransport(c))
+    conn := srv.NewConn(NewSocketTransport(true, c), nil)
+    conn.Serve(ctx)
+
+    // 主动请求客户端
+    conn.Send("/method", in, func(result *result) error {
+        // 此处用于处理返回的数据
+    })
 }
 ```
 
