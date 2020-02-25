@@ -93,18 +93,24 @@ func (s *Server) NewHTTPConn(url string, errlog *log.Logger) *HTTPConn {
 func (h *HTTPConn) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	t := newHTTPTransport(w, r)
 	defer func() {
-		if err := t.Close(); err != nil && h.errlog != nil {
-			h.errlog.Println(err)
+		if err := t.Close(); err != nil {
+			h.printErr(err)
 		}
 	}()
 
 	req, err := h.server.read(t)
-	if err != nil && h.errlog != nil {
-		h.errlog.Println(err)
+	if err != nil {
+		h.printErr(err)
 	}
 
-	if err := h.server.response(t, req); err != nil && h.errlog != nil {
-		h.errlog.Println(err)
+	if err := h.server.response(t, req); err != nil {
+		h.printErr(err)
+	}
+}
+
+func (h *HTTPConn) printErr(v interface{}) {
+	if h.errlog != nil {
+		h.errlog.Println(v)
 	}
 }
 
@@ -125,8 +131,8 @@ func (h *HTTPConn) request(method string, notify bool, in, callback interface{})
 
 	t := newHTTPClientTransport(h.url)
 	defer func() {
-		if err := t.Close(); err != nil && h.errlog != nil {
-			h.errlog.Println(err)
+		if err := t.Close(); err != nil {
+			h.printErr(err)
 		}
 	}()
 
