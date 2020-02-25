@@ -11,6 +11,40 @@ import (
 	"github.com/issue9/assert"
 )
 
+func TestNewCallback(t *testing.T) {
+	a := assert.New(t)
+
+	type f func()
+
+	a.Panic(func() {
+		newCallback(5)
+	})
+
+	a.Panic(func() {
+		newCallback(func(*int) {})
+	})
+
+	a.Panic(func() {
+		newCallback(func(interface{}) {})
+	})
+
+	a.NotPanic(func() {
+		newCallback(func(*int) error { return nil })
+	})
+
+	a.Panic(func() {
+		newCallback(func(**int) error { return nil })
+	})
+
+	a.Panic(func() {
+		newCallback(func(interface{}) error { return nil })
+	})
+
+	a.NotPanic(func() {
+		newCallback(func(*interface{}) error { return nil })
+	})
+}
+
 func TestNewHandler(t *testing.T) {
 	a := assert.New(t)
 
@@ -151,6 +185,56 @@ func TestHandler_call(t *testing.T) {
 			a.True(ok).
 				Equal(err1.Code, item.err, "not equal v1=%v,v2=%v @ %d", err1.Code, item.err, i).
 				Nil(resp)
+		}
+	}
+}
+
+func TestCallback_call(t *testing.T) {
+	a := assert.New(t)
+
+	str := []byte("str")
+	num := []byte("-1")
+
+	data := []*struct {
+		c    *callback
+		resp *body
+		err  bool
+	}{
+		{
+			c:    newCallback(func(i *int) error { return nil }),
+			resp: &body{},
+		},
+
+		{ // 返回指定的错误信息
+			c:    newCallback(func(i *int) error { return nil }),
+			resp: &body{Error: NewError(CodeInvalidParams, "")},
+			err:  true,
+		},
+
+		{ // 内容无法转换成 *int
+			c:    newCallback(func(i *int) error { return nil }),
+			resp: &body{Result: (*json.RawMessage)(&str)},
+			err:  true,
+		},
+
+		{
+			c:    newCallback(func(i *int) error { return nil }),
+			resp: &body{Result: (*json.RawMessage)(&num)},
+		},
+
+		{ // 回调函数返回错误
+			c:    newCallback(func(i *int) error { return errors.New("teet") }),
+			resp: &body{Result: (*json.RawMessage)(&num)},
+			err:  true,
+		},
+	}
+
+	for i, item := range data {
+		err := item.c.call(item.resp)
+		if item.err {
+			a.Error(err, "not error at %d", i)
+		} else {
+			a.NotError(err, "err %s at %d", err, i)
 		}
 	}
 }

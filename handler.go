@@ -15,7 +15,7 @@ type handler struct {
 	in, out reflect.Type
 }
 
-// Send 的处理函数
+// Send 的回调函数
 type callback struct {
 	f      reflect.Value
 	result reflect.Type
@@ -102,14 +102,14 @@ func (h *handler) call(req *body) (*body, error) {
 	}, nil
 }
 
-func (c *callback) call(body *body) error {
-	if body.Error != nil {
-		return body.Error
+func (c *callback) call(response *body) error {
+	if response.Error != nil {
+		return response.Error
 	}
 
 	rv := reflect.New(c.result)
-	if body.Result != nil {
-		if err := json.Unmarshal(*body.Result, rv.Interface()); err != nil {
+	if response.Result != nil {
+		if err := json.Unmarshal(*response.Result, rv.Interface()); err != nil {
 			return err
 		}
 	}
