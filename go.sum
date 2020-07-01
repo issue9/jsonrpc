@@ -7,5 +7,5 @@ github.com/issue9/autoinc v1.0.6 h1:CIxOClYBIRRu9u+YjprhghyxipJuKEj9cKX6zwj0/Wk=
 github.com/issue9/autoinc v1.0.6/go.mod h1:bGWX564I5nsereCvh5W9A4jSS8TXONd/ybdNJu5ct/E=
 github.com/issue9/rands v1.1.4 h1:Wx1PzxTF57aao5Xq2/Q0nzRGBuRKWw6nw2emWfwl4hE=
 github.com/issue9/rands v1.1.4/go.mod h1:aCnoDR8ukczytaW+9FXuWS7YhhAK/5f+w8sM7P6UXqs=
-github.com/issue9/unique v1.2.1 h1:3PZbBEVcz7JlC2QyZAfl/kcOvT2WTnHsTWnPf2hba1k=
-github.com/issue9/unique v1.2.1/go.mod h1:OyIGEV2ag+3MZh0F8TzArniLPMeIH6I5xcNsEWbi2Lo=
+github.com/issue9/unique v1.3.0 h1:TaSD6XLbezW2YRI/Lq3GJEgpiY/jKS7QtIITg86CwY8=
+github.com/issue9/unique v1.3.0/go.mod h1:VSK2HDwW16oEiMUSJpj0R1mMTedtGyFb55atycKRE8I=

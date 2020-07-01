@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/issue9/unique"
 )
@@ -22,7 +21,7 @@ type Server struct {
 // NewServer 新的 Server 实例
 func NewServer() *Server {
 	return &Server{
-		unique: unique.New(time.Now().Unix(), 1, time.Hour, "", 36),
+		unique: unique.NewString(),
 	}
 }
 
