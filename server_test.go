@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/issue9/assert"
@@ -61,6 +62,10 @@ func initServer(a *assert.Assertion) *Server {
 	a.True(srv.Register("f3", f3))
 
 	a.False(srv.Register("f3", f3))
+
+	srv.RegisterMatcher(func(m string) bool {
+		return strings.HasPrefix(m, "ok/")
+	}, f1)
 
 	return srv
 }
@@ -159,6 +164,17 @@ func TestServer_response(t *testing.T) {
 			method: "not-exists",
 			err:    CodeMethodNotFound,
 		},
+
+		{ // registerMatcher，对应 f1
+			in:     &inType{Age: 18},
+			out:    &outType{Age: 18},
+			method: "ok/111",
+		},
+		{ // 不存在
+			in:     &inType{Age: 18},
+			method: "ok111",
+			err:    CodeMethodNotFound,
+		},
 	}
 
 	in := new(bytes.Buffer)
@@ -188,14 +204,14 @@ func TestServer_response(t *testing.T) {
 		a.NotError(json.Unmarshal(out.Bytes(), resp))
 
 		if item.err == 0 {
-			a.Nil(resp.Error, "nil @ %d", i)
+			a.Nil(resp.Error, "not nil %s @ %d", resp.Error, i)
 
 			out := &outType{}
 			a.NotError(json.Unmarshal(*resp.Result, out))
 			a.Equal(item.out, out)
 		} else {
 			a.NotNil(resp.Error).
-				Equal(resp.Error.Code, item.err, "not equal v1=%v,v2=%v @ %d", resp.Error.Code, item.err, i)
+				Equal(resp.Error.Code, item.err, "not equal\nv1=%v\nv2=%v\n@ %d", resp.Error.Code, item.err, i)
 		}
 	}
 }

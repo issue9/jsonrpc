@@ -13,15 +13,22 @@ import (
 
 // Server JSON RPC 服务实例
 type Server struct {
-	unique  *unique.Unique
-	servers sync.Map
-	before  func(string) error
+	unique   *unique.Unique
+	servers  sync.Map
+	matchers []matcher
+	before   func(string) error
+}
+
+type matcher struct {
+	matcher func(string) bool
+	h       *handler
 }
 
 // NewServer 新的 Server 实例
 func NewServer() *Server {
 	return &Server{
-		unique: unique.NewString(),
+		unique:   unique.NewString(),
+		matchers: []matcher{},
 	}
 }
 
@@ -61,6 +68,19 @@ func (s *Server) Register(method string, f interface{}) bool {
 
 	s.servers.Store(method, newHandler(f))
 	return true
+}
+
+// RegisterMatcher 注册服务名称通过函数判断的新服务
+//
+// m 为服务名称的匹配方法，其原型如下：
+//  func(method string) bool
+// 如果服务名称能正确匹配则返回 true。
+//
+// 通过 RegisterMatcher 注册的服务，其权重要低于 Register 注册的服务，
+// 即一个服务名称只有在 Register 注册的列表中找不到，才会考虑通过在
+// RegisterMatcher 注册的列表中查找。
+func (s *Server) RegisterMatcher(m func(string) bool, f interface{}) {
+	s.matchers = append(s.matchers, matcher{matcher: m, h: newHandler(f)})
 }
 
 // Exists 是否已经存在相同的方法名
@@ -103,13 +123,23 @@ func (s *Server) response(t Transport, req *body) error {
 		}
 	}
 
-	f, found := s.servers.Load(req.Method)
-	if !found {
-		msg := fmt.Errorf("未找到对应的服务 %s", req.Method)
-		return s.writeError(t, req.ID, CodeMethodNotFound, msg, nil)
+	var h *handler
+	if f, found := s.servers.Load(req.Method); found {
+		h = f.(*handler)
+	} else {
+		for _, m := range s.matchers {
+			if m.matcher(req.Method) {
+				h = m.h
+				break
+			}
+		}
+		if h == nil {
+			msg := fmt.Errorf("未找到对应的服务 %s", req.Method)
+			return s.writeError(t, req.ID, CodeMethodNotFound, msg, nil)
+		}
 	}
 
-	resp, err := f.(*handler).call(req)
+	resp, err := h.call(req)
 	if err != nil {
 		return s.writeError(t, req.ID, CodeParseError, err, nil)
 	}
