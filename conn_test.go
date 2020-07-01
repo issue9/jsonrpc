@@ -48,7 +48,7 @@ func TestConn_Serve(t *testing.T) {
 	a.NotError(err)
 
 	err = client.Send("f1", &inType{Age: 19, Last: "l"}, func(out *outType) error {
-		a.NotError(err).Equal(out.Age, 19).Equal(out.Name, "l")
+		a.Equal(out.Age, 19).Equal(out.Name, "l")
 		return nil
 	})
 	a.NotError(err)
