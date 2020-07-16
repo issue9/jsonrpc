@@ -27,6 +27,7 @@ func newCallback(f interface{}) *callback {
 	if t.Kind() != reflect.Func ||
 		t.NumIn() != 1 ||
 		t.In(0).Kind() != reflect.Ptr ||
+		t.NumOut() != 1 ||
 		!t.Out(0).Implements(errType) {
 		panic(fmt.Sprintf("函数 %s 签名不正确", t.String()))
 	}
@@ -50,6 +51,7 @@ func newHandler(f interface{}) *handler {
 		t.In(0).Kind() != reflect.Bool ||
 		t.In(1).Kind() != reflect.Ptr ||
 		t.In(2).Kind() != reflect.Ptr ||
+		t.NumOut() != 1 ||
 		!t.Out(0).Implements(errType) {
 		panic(fmt.Sprintf("函数 %s 签名不正确", t.String()))
 	}

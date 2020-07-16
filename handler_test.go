@@ -43,6 +43,11 @@ func TestNewCallback(t *testing.T) {
 	a.NotPanic(func() {
 		newCallback(func(*interface{}) error { return nil })
 	})
+
+	// 没有返回值
+	a.Panic(func() {
+		newCallback(func(*interface{}) {})
+	})
 }
 
 func TestNewHandler(t *testing.T) {
@@ -79,7 +84,12 @@ func TestNewHandler(t *testing.T) {
 		newHandler(func(bool, *int, *int) int { return 0 })
 	})
 
-	// 返回值不正确
+	// 没有返回值
+	a.Panic(func() {
+		newHandler(func(bool, *int, *int) {})
+	})
+
+	// 返回值实现了 error 类型
 	a.NotPanic(func() {
 		newHandler(func(bool, *int, *int) *Error { return nil })
 	})
