@@ -61,6 +61,7 @@ func (id *ID) Equal(val *ID) bool {
 	return id.alpha == val.alpha
 }
 
+// MarshalJSON json.Marshaler.MarshalJSON
 func (id *ID) MarshalJSON() ([]byte, error) {
 	if id.isNumber {
 		return json.Marshal(id.number)
@@ -68,6 +69,7 @@ func (id *ID) MarshalJSON() ([]byte, error) {
 	return json.Marshal(id.alpha)
 }
 
+// UnmarshalJSON json.Unmarshaler.UnmarshalJSON
 func (id *ID) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &id.number); err == nil {
 		id.isNumber = true
@@ -147,6 +149,9 @@ func NewErrorWithData(code int, msg string, data interface{}) *Error {
 	}
 }
 
+// NewErrorWithError 从 err 构建一个新的 Error 实例
+//
+// 如果 err 本身就是 *Error 实例，则会直接返回该对象。
 func NewErrorWithError(code int, err error) *Error {
 	if err2, ok := err.(*Error); ok {
 		return err2

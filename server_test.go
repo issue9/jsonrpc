@@ -139,6 +139,10 @@ func TestServer_response(t *testing.T) {
 		out    *outType
 		method string
 	}{
+		{ // in==nil
+			out:    &outType{Age: 0},
+			method: "f1",
+		},
 		{ // 正常
 			in:     &inType{Age: 18},
 			out:    &outType{Age: 18},
