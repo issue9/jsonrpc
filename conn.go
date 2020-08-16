@@ -58,7 +58,9 @@ func (conn *Conn) Send(method string, in, callback interface{}) error {
 	return nil
 }
 
-// Serve 作为服务端运行
+// Serve 运行服务
+//
+// 处理 Send 之后的数据或是作为服务端运行都需要调用此函数运行服务。
 //
 // t 表示的是传输层的实例；
 // ctx 可以用于中断当前的服务。但是需要注意，可能会被 Transport.Read 阻塞而无法退出，
@@ -88,35 +90,30 @@ func (conn *Conn) Serve(ctx context.Context) (err error) {
 				continue
 			}
 
-			conn.serve(body, wg)
+			go func() {
+				wg.Add(1)
+				defer wg.Done()
+
+				conn.serve(body)
+			}()
 		}
 	}
 }
 
-func (conn *Conn) serve(body *body, wg *sync.WaitGroup) {
-	wg.Add(1)
-
+func (conn *Conn) serve(body *body) {
 	if !body.isRequest() {
-		go func() {
-			defer wg.Done()
-
-			if f, found := conn.callbacks.Load(body.ID.String()); found {
-				if err := f.(*callback).call(body); err != nil {
-					conn.printErr(err)
-				}
-				conn.callbacks.Delete(body.ID.String())
-			} else {
-				conn.printErr(fmt.Sprintf("未找到 %s 的处理函数,%+v\n", body.ID, body))
-			}
-		}()
-	} else {
-		go func() {
-			defer wg.Done()
-
-			if err := conn.server.response(conn.transport, body); err != nil {
+		if f, found := conn.callbacks.Load(body.ID.String()); found {
+			if err := f.(*callback).call(body); err != nil {
 				conn.printErr(err)
 			}
-		}()
+			conn.callbacks.Delete(body.ID.String())
+		} else {
+			conn.printErr(fmt.Sprintf("未找到 %s 的处理函数,%+v\n", body.ID, body))
+		}
+	} else {
+		if err := conn.server.response(conn.transport, body); err != nil {
+			conn.printErr(err)
+		}
 	}
 }
 
