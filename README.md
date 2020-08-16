@@ -48,7 +48,7 @@ go get github.com/issue9/jsonrpc
 ----
 
 [![Go Walker](https://gowalker.org/api/v1/badge)](https://gowalker.org/github.com/issue9/jsonrpc)
-[![GoDoc](https://godoc.org/github.com/issue9/jsonrpc?status.svg)](https://godoc.org/github.com/issue9/jsonrpc)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/issue9/jsonrpc)](https://pkg.go.dev/github.com/issue9/jsonrpc)
 
 版权
 ----
