@@ -90,10 +90,9 @@ func (conn *Conn) Serve(ctx context.Context) (err error) {
 				continue
 			}
 
+			wg.Add(1)
 			go func() {
-				wg.Add(1)
 				defer wg.Done()
-
 				conn.serve(body)
 			}()
 		}
