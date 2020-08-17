@@ -33,7 +33,7 @@ type streamTransport struct {
 
 // NewSocketTransport 声明基于 socket 的 Transport 实例
 //
-// HTTP 和 websocket 有专门的实现方法
+// HTTP、UDP 和 websocket 有专门的实现方法
 func NewSocketTransport(header bool, conn net.Conn) Transport {
 	return NewStreamTransport(header, conn, conn, func() error { return conn.Close() })
 }
