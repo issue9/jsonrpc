@@ -80,7 +80,10 @@ func (h *httpClientTransport) Close() error {
 
 // NewHTTPConn 声明 HTTP 服务端中间件
 //
-// url 表示主动请求时的 URL 地址，如果不需要，可以传递空值；
+// NOTE: 作为服务端使用时，如果需要下发数据，则只能与客户端一对一使用。
+//
+// url 表示主动请求时的 URL 地址，如果不需要，可以传递空值，
+// 作为客户端时表示服务端的地址，作为服务端使用时，表示客户端的地址；
 // errlog 表示错误日志输出通道，不需要可以为空。
 func (s *Server) NewHTTPConn(url string, errlog *log.Logger) *HTTPConn {
 	return &HTTPConn{

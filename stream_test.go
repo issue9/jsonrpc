@@ -4,8 +4,12 @@ package jsonrpc
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"math"
+	"net"
 	"testing"
+	"time"
 
 	"github.com/issue9/assert"
 )
@@ -204,4 +208,60 @@ func TestStreamTransport_Write(t *testing.T) {
 	a.NotNil(transport)
 	a.Error(transport.Write(&failedTester{Value: math.NaN()}))
 	a.NotError(transport.Close())
+}
+
+func TestTCP(t *testing.T) {
+	a := assert.New(t)
+	header := true
+	server := initServer(a)
+
+	srvExit := make(chan struct{}, 1)
+	srvCtx, srvCancel := context.WithCancel(context.Background())
+	var srv *Conn
+
+	go func() {
+		l, err := net.Listen("tcp", ":8989")
+		a.NotError(err)
+		conn, err := l.Accept()
+		a.NotError(err)
+
+		srvT := NewSocketTransport(header, conn)
+		a.NotNil(srvT)
+		srv = server.NewConn(srvT, nil)
+
+		err = srv.Serve(srvCtx)
+		a.True(errors.Is(err, context.Canceled))
+		srvExit <- struct{}{}
+	}()
+	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
+
+	raddr, err := net.ResolveTCPAddr("tcp", ":8989")
+	a.NotError(err)
+	conn, err := net.DialTCP("tcp", nil, raddr)
+	clientT := NewSocketTransport(header, conn)
+	client := NewServer().NewConn(clientT, nil)
+	clientCtx, clientCancel := context.WithCancel(context.Background())
+	clientExit := make(chan struct{}, 1)
+	go func() {
+		err := client.Serve(clientCtx)
+		a.True(errors.Is(err, context.Canceled))
+		clientExit <- struct{}{}
+	}()
+	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
+
+	f1Method := make(chan struct{}, 1)
+	client.Send("f1", &inType{Age: 11}, func(result *outType) error {
+		a.Equal(result.Age, 11)
+		f1Method <- struct{}{}
+		return nil
+	})
+
+	<-f1Method
+	clientCancel()
+	srvCancel()
+
+	err = client.Notify("f1", &inType{}) // 触发 srvCtx 的退出事件
+	err = srv.Notify("f1", &inType{})    // 触发 srvCtx 的退出事件
+	<-srvExit
+	<-clientExit
 }

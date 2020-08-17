@@ -12,6 +12,8 @@ import (
 // Conn JSON RPC 连接对象
 //
 // json-rpc 客户端和服务端是对等的，两者都使用 conn 初始化。
+//
+// 如果需要使用 HTTP 的通讯模式，请使用 HTTPConn 对象。
 type Conn struct {
 	server    *Server
 	errlog    *log.Logger
