@@ -92,6 +92,9 @@ func (conn *Conn) Serve(ctx context.Context) (err error) {
 				conn.printErr(err)
 				continue
 			}
+			if body == nil {
+				continue
+			}
 
 			wg.Add(1)
 			go func() {
@@ -104,7 +107,11 @@ func (conn *Conn) Serve(ctx context.Context) (err error) {
 
 func (conn *Conn) serve(body *body) {
 	if !body.isRequest() {
-		if f, found := conn.callbacks.Load(body.ID.String()); found {
+		if body.Error != nil {
+			if conn.server.errHandler != nil {
+				conn.server.errHandler(body.Error)
+			}
+		} else if f, found := conn.callbacks.Load(body.ID.String()); found {
 			if err := f.(*callback).call(body); err != nil {
 				conn.printErr(err)
 			}

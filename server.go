@@ -13,10 +13,11 @@ import (
 
 // Server JSON RPC 服务实例
 type Server struct {
-	unique   *unique.Unique
-	servers  sync.Map
-	matchers []matcher
-	before   func(string) error
+	unique     *unique.Unique
+	servers    sync.Map
+	matchers   []matcher
+	before     func(string) error
+	errHandler func(*Error)
 }
 
 type matcher struct {
@@ -98,6 +99,13 @@ func (s *Server) Registers(methods map[string]interface{}) {
 			panic("已经存在相同的方法：" + method)
 		}
 	}
+}
+
+// ErrHandler 指定请求数据的错误处理函数
+//
+// 仅针对请求数据，多次调用会相互覆盖。
+func (s *Server) ErrHandler(h func(*Error)) {
+	s.errHandler = h
 }
 
 func (s *Server) read(t Transport) (*body, error) {
