@@ -6,4 +6,4 @@ require (
 	github.com/issue9/unique v1.3.0
 )
 
-go 1.13
+go 1.15
