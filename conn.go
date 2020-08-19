@@ -111,7 +111,7 @@ func (conn *Conn) serve(body *body) {
 			}
 			conn.callbacks.Delete(body.ID.String())
 		} else {
-			conn.printErr(fmt.Sprintf("未找到 %s 的处理函数,%+v\n", body.ID, body))
+			conn.printErr(fmt.Sprintf("未找到 %s 的回调函数,%+v\n", body.ID, body))
 		}
 	} else {
 		if err := conn.server.response(conn.transport, body); err != nil {
