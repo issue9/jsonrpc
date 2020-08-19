@@ -3,36 +3,41 @@
 package jsonrpc
 
 import (
-	"io"
 	"net"
 	"sync"
+	"time"
 )
 
-type udpReadWriter struct {
+type udp struct {
 	conn *net.UDPConn
 
 	addr    *net.UDPAddr
 	addrMux sync.RWMutex
+	timeout time.Duration
 }
 
-func (conn *udpReadWriter) Read(p []byte) (n int, err error) {
+func (conn *udp) Read(p []byte) (n int, err error) {
 	var addr *net.UDPAddr
+	conn.conn.SetReadDeadline(time.Now().Add(conn.timeout))
 	n, addr, err = conn.conn.ReadFromUDP(p)
+	if err != nil {
+		return 0, err
+	}
 
 	conn.addrMux.Lock()
 	conn.addr = addr
 	conn.addrMux.Unlock()
 
-	return n, err
+	return n, nil
 }
 
-func (conn *udpReadWriter) Write(b []byte) (int, error) {
+func (conn *udp) Write(b []byte) (int, error) {
 	conn.addrMux.RLock()
 	defer conn.addrMux.RUnlock()
 	return conn.conn.WriteToUDP(b, conn.addr)
 }
 
-func (conn *udpReadWriter) Close() error {
+func (conn *udp) Close() error {
 	return conn.conn.Close()
 }
 
@@ -46,10 +51,11 @@ func (conn *udpReadWriter) Close() error {
 // 如果不包含报头，则是一段合法的 JSON 内容。
 // connected 表示 conn 是否是有状态的，如果是调用 net.ListenUDP 生成的实例，是无状态的；
 // net.DialUDP 返回的则是有状态的连接。
-func NewUDPTransport(header bool, conn *net.UDPConn, connected bool) Transport {
-	var rw io.ReadWriteCloser = conn
+// timeout 指定了 udp 在无法读取数据时的超时时间。
+func NewUDPTransport(header bool, conn *net.UDPConn, connected bool, timeout time.Duration) Transport {
+	rw := newSocketStream(conn, timeout)
 	if !connected {
-		rw = &udpReadWriter{conn: conn}
+		rw = &udp{conn: conn, timeout: timeout}
 	}
 	return NewStreamTransport(header, rw, rw, func() error { return rw.Close() })
 }
@@ -58,7 +64,8 @@ func NewUDPTransport(header bool, conn *net.UDPConn, connected bool) Transport {
 //
 // 这是对 NewUDPTransport 的二次封装，返回适用于服务端的接口实例，
 // 其中的 conn 参数由 net.ListenUDP 创建，而 connected 统一为 false。
-func NewUDPServerTransport(header bool, addr string) (Transport, error) {
+// timeout 指定了 udp 在无法读取数据时的超时时间。
+func NewUDPServerTransport(header bool, addr string, timeout time.Duration) (Transport, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return nil, err
@@ -69,7 +76,7 @@ func NewUDPServerTransport(header bool, addr string) (Transport, error) {
 		return nil, err
 	}
 
-	return NewUDPTransport(header, c, false), nil
+	return NewUDPTransport(header, c, false, timeout), nil
 }
 
 // NewUDPClientTransport 声明用于客户的 UDP Transport 接口
@@ -78,7 +85,8 @@ func NewUDPServerTransport(header bool, addr string) (Transport, error) {
 // 其中的 conn 参数由 net.DialUDP 创建，而 connected 统一为 true。
 //
 // raddr 用于指定服务端地址；laddr 用于指定本地地址，可以为空值。
-func NewUDPClientTransport(header bool, raddr, laddr string) (Transport, error) {
+// timeout 指定了 udp 在无法读取数据时的超时时间。
+func NewUDPClientTransport(header bool, raddr, laddr string, timeout time.Duration) (Transport, error) {
 	remote, err := net.ResolveUDPAddr("udp", raddr)
 	if err != nil {
 		return nil, err
@@ -97,5 +105,5 @@ func NewUDPClientTransport(header bool, raddr, laddr string) (Transport, error) 
 		return nil, err
 	}
 
-	return NewUDPTransport(header, conn, true), nil
+	return NewUDPTransport(header, conn, true, timeout), nil
 }

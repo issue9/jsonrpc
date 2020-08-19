@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // 定义基于流的传输层定义
@@ -31,11 +32,34 @@ type streamTransport struct {
 	close func() error
 }
 
-// NewSocketTransport 声明基于 socket 的 Transport 实例
+// 对 net.Conn 进行了自定义，使 Read 具有超时功能。
+type socket struct {
+	net.Conn
+	timeout time.Duration
+}
+
+func (conn *socket) Read(p []byte) (int, error) {
+	conn.SetReadDeadline(time.Now().Add(conn.timeout))
+	return conn.Conn.Read(p)
+}
+
+func newSocketStream(conn net.Conn, timeout time.Duration) io.ReadWriteCloser {
+	if timeout > 0 {
+		return &socket{Conn: conn, timeout: timeout}
+	}
+	return conn
+}
+
+// NewSocketTransport 声明基于 net.Conn 的 Transport 实例
 //
-// HTTP、UDP 和 websocket 有专门的实现方法
-func NewSocketTransport(header bool, conn net.Conn) Transport {
-	return NewStreamTransport(header, conn, conn, func() error { return conn.Close() })
+// HTTP、UDP 和 websocket 有专门的实现方法。
+//
+// timeout 可以使读取数据时拥有超过的功能。
+// Conn.Serve() 通过 context.WithCancel 中断当前的服务，但是该功能可能由于 net.Conn.Read()
+// 方法阻塞而无法真正中断服务，timeout 指定了 net.Conn.Read() 方法在无法读取数据是的超时时间。
+func NewSocketTransport(header bool, conn net.Conn, timeout time.Duration) Transport {
+	s := newSocketStream(conn, timeout)
+	return NewStreamTransport(header, s, s, func() error { return s.Close() })
 }
 
 // NewStreamTransport 返回基于流的 Transport 实例

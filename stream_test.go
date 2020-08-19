@@ -225,7 +225,7 @@ func TestTCP(t *testing.T) {
 		conn, err := l.Accept()
 		a.NotError(err)
 
-		srvT := NewSocketTransport(header, conn)
+		srvT := NewSocketTransport(header, conn, time.Second)
 		a.NotNil(srvT)
 		srv = server.NewConn(srvT, nil)
 
@@ -238,7 +238,7 @@ func TestTCP(t *testing.T) {
 	raddr, err := net.ResolveTCPAddr("tcp", ":8989")
 	a.NotError(err)
 	conn, err := net.DialTCP("tcp", nil, raddr)
-	clientT := NewSocketTransport(header, conn)
+	clientT := NewSocketTransport(header, conn, time.Second)
 	client := NewServer().NewConn(clientT, nil)
 	clientCtx, clientCancel := context.WithCancel(context.Background())
 	clientExit := make(chan struct{}, 1)
@@ -260,10 +260,6 @@ func TestTCP(t *testing.T) {
 	clientCancel()
 	srvCancel()
 
-	err = client.Notify("f1", &inType{}) // 触发 srvCtx 的退出事件
-	a.NotError(err)
-	err = srv.Notify("f1", &inType{}) // 触发 srvCtx 的退出事件
-	a.NotError(err)
 	<-srvExit
 	<-clientExit
 }

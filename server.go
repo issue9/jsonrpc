@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/issue9/unique"
@@ -111,6 +112,9 @@ func (s *Server) ErrHandler(h func(*Error)) {
 func (s *Server) read(t Transport) (*body, error) {
 	req := &body{}
 	if err := t.Read(req); err != nil {
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			return nil, nil
+		}
 		return nil, s.writeError(t, nil, CodeParseError, err, nil)
 	}
 

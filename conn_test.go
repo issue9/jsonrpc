@@ -21,7 +21,7 @@ func TestConn_Serve(t *testing.T) {
 	srvExit := make(chan struct{}, 1)
 	srvCtx, srvCancel := context.WithCancel(context.Background())
 	go func() {
-		conn := srv.NewConn(NewSocketTransport(false, srvConn), log.New(ioutil.Discard, "", 0))
+		conn := srv.NewConn(NewSocketTransport(false, srvConn, 0), log.New(ioutil.Discard, "", 0))
 		err := conn.Serve(srvCtx)
 		a.Equal(err, context.Canceled)
 		srvExit <- struct{}{}
@@ -30,7 +30,7 @@ func TestConn_Serve(t *testing.T) {
 
 	clientExit := make(chan struct{}, 1)
 	clientCtx, clientCancel := context.WithCancel(context.Background())
-	client := srv.NewConn(NewSocketTransport(false, clientConn), nil)
+	client := srv.NewConn(NewSocketTransport(false, clientConn, 0), nil)
 	go func() {
 		err := client.Serve(clientCtx)
 		a.Equal(err, context.Canceled)

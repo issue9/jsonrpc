@@ -68,6 +68,7 @@ func (conn *Conn) Send(method string, in, callback interface{}) error {
 // 所以在调用 cancel 之后，再下次对方有数据发送过来之后才能会退出。
 // 作为客户端需要下一次的服务端数据下发才能退出，
 // 而作为服务端需下一次的客户端请求才会真正退出。
+// 用户可以自行实现在阻塞时返回 os.ErrDeadlineExceeded 解决此问题。
 func (conn *Conn) Serve(ctx context.Context) (err error) {
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
