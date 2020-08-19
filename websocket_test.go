@@ -57,7 +57,4 @@ func TestNewWebsocketTransport(t *testing.T) {
 	a.NotError(err)
 
 	cancel()
-	// 触发 ctx 的退出事件
-	err = client.Notify("f1", &inType{})
-	a.NotError(err)
 }

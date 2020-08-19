@@ -70,21 +70,14 @@ func (conn *Conn) Send(method string, in, callback interface{}) error {
 // 而作为服务端需下一次的客户端请求才会真正退出。
 func (conn *Conn) Serve(ctx context.Context) (err error) {
 	wg := &sync.WaitGroup{}
-
-	defer func() {
-		wg.Wait()
-		if err2 := conn.transport.Close(); err2 != nil {
-			if err != nil {
-				err = fmt.Errorf("在抛出错误 %w 时，再次发生了错误 %v", err, err2)
-			} else {
-				err = err2
-			}
-		}
-	}()
+	defer wg.Wait()
 
 	for {
 		select {
 		case <-ctx.Done():
+			if err := conn.transport.Close(); err != nil {
+				return err
+			}
 			return ctx.Err()
 		default:
 			body, err := conn.server.read(conn.transport)

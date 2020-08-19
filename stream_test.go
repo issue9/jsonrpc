@@ -261,7 +261,9 @@ func TestTCP(t *testing.T) {
 	srvCancel()
 
 	err = client.Notify("f1", &inType{}) // 触发 srvCtx 的退出事件
-	err = srv.Notify("f1", &inType{})    // 触发 srvCtx 的退出事件
+	a.NotError(err)
+	err = srv.Notify("f1", &inType{}) // 触发 srvCtx 的退出事件
+	a.NotError(err)
 	<-srvExit
 	<-clientExit
 }
