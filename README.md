@@ -1,7 +1,8 @@
 jsonrpc
-[![Build Status](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fissue9%2Fjsonrpc%2Fbadge%3Fref%3Dmaster&style=flat)](https://actions-badge.atrox.dev/issue9/jsonrpc/goto?ref=master)
+[![Go](https://github.com/issue9/jsonrpc/workflows/Go/badge.svg)](https://github.com/issue9/jsonrpc/actions?query=workflow%3AGo)
 [![codecov](https://codecov.io/gh/issue9/jsonrpc/branch/master/graph/badge.svg)](https://codecov.io/gh/issue9/jsonrpc)
 [![license](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](https://opensource.org/licenses/MIT)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/issue9/jsonrpc)](https://pkg.go.dev/github.com/issue9/jsonrpc)
 ======
 
 JSON RPC 2.0 的实现，目前实现了对以下传输层的接口：
@@ -43,12 +44,6 @@ http.Handle(conn)
 ```shell
 go get github.com/issue9/jsonrpc
 ```
-
-文档
-----
-
-[![Go Walker](https://gowalker.org/api/v1/badge)](https://gowalker.org/github.com/issue9/jsonrpc)
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/issue9/jsonrpc)](https://pkg.go.dev/github.com/issue9/jsonrpc)
 
 版权
 ----
