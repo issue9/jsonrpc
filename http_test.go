@@ -6,13 +6,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/issue9/assert"
+	"github.com/issue9/assert/v2"
 )
 
 var _ Transport = &httpTransport{}
 
 func TestHTTPConn_ServeHTTP(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 	s := initServer(a)
 	a.NotNil(s)
 
@@ -51,7 +51,7 @@ func TestHTTPConn_ServeHTTP(t *testing.T) {
 }
 
 func TestValidContentType(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	a.NotError(validContentType("application/json"))
 	a.NotError(validContentType(""))

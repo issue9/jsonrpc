@@ -10,13 +10,13 @@ import (
 	"testing"
 
 	"github.com/gorilla/websocket"
-	"github.com/issue9/assert"
+	"github.com/issue9/assert/v2"
 )
 
 var _ Transport = &websocketTransport{}
 
 func TestNewWebsocketTransport(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	rpcServer := initServer(a)
 

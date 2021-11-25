@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/issue9/assert"
+	"github.com/issue9/assert/v2"
 )
 
 func TestUDP(t *testing.T) {
-	a := assert.New(t)
-	header := true
+	const header = true
+	a := assert.New(t, false)
 	server := initServer(a)
 
 	srvExit := make(chan struct{}, 1)
@@ -42,11 +42,12 @@ func TestUDP(t *testing.T) {
 	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
 
 	f1Method := make(chan struct{}, 1)
-	client.Send("f1", &inType{Age: 11}, func(result *outType) error {
+	err = client.Send("f1", &inType{Age: 11}, func(result *outType) error {
 		a.Equal(result.Age, 11)
 		f1Method <- struct{}{}
 		return nil
 	})
+	a.NotError(err)
 
 	<-f1Method
 	clientCancel()
@@ -59,7 +60,7 @@ func TestUDP(t *testing.T) {
 }
 
 func TestNewUDPClientTransport(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	tp, err := NewUDPClientTransport(true, "8989", ":8989", time.Second)
 	a.Error(err).Nil(tp)

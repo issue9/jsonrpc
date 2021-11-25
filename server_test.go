@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/issue9/assert"
+	"github.com/issue9/assert/v2"
 )
 
 var (
@@ -71,7 +71,7 @@ func initServer(a *assert.Assertion) *Server {
 }
 
 func TestServer_read(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 	srv := initServer(a)
 
 	data := []*struct {
@@ -121,7 +121,7 @@ func TestServer_read(t *testing.T) {
 }
 
 func TestServer_response(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 	srv := initServer(a)
 	srv.RegisterBefore(func(method string) error {
 		if method == "b2" {
@@ -197,7 +197,8 @@ func TestServer_response(t *testing.T) {
 		}
 		data, err = json.Marshal(req)
 		a.NotError(err)
-		a.NotError(in.Write(data))
+		_, err = in.Write(data)
+		a.NotError(err)
 
 		transport := NewStreamTransport(false, in, out, nil)
 		ret, err := srv.read(transport)
@@ -221,9 +222,9 @@ func TestServer_response(t *testing.T) {
 }
 
 func TestServer_Registers(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 	srv := NewServer()
-	a.NotError(srv)
+	a.NotNil(srv)
 
 	a.NotPanic(func() {
 		srv.Registers(map[string]interface{}{
@@ -233,7 +234,7 @@ func TestServer_Registers(t *testing.T) {
 	})
 
 	srv = NewServer()
-	a.NotError(srv)
+	a.NotNil(srv)
 	a.Panic(func() {
 		srv.Registers(map[string]interface{}{
 			"f1": f1,
@@ -242,7 +243,7 @@ func TestServer_Registers(t *testing.T) {
 	})
 
 	srv = NewServer()
-	a.NotError(srv)
+	a.NotNil(srv)
 	a.Panic(func() {
 		a.True(srv.Register("f1", f1))
 		srv.Registers(map[string]interface{}{

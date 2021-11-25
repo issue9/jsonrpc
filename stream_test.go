@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/issue9/assert"
+	"github.com/issue9/assert/v2"
 )
 
 var _ Transport = &streamTransport{}
 
 func TestStreamTransport_Read(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	data := []*struct {
 		header bool // 是否带报头
@@ -135,7 +135,7 @@ func TestStreamTransport_Read(t *testing.T) {
 	for i, item := range data {
 		in, out := bytes.NewBufferString(item.in), new(bytes.Buffer)
 		transport := NewStreamTransport(item.header, in, out, nil)
-		a.NotError(transport)
+		a.NotNil(transport)
 
 		req := &body{}
 		err := transport.Read(req)
@@ -151,7 +151,7 @@ func TestStreamTransport_Read(t *testing.T) {
 }
 
 func TestStreamTransport_Write(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	data := []*struct {
 		header bool
@@ -211,8 +211,8 @@ func TestStreamTransport_Write(t *testing.T) {
 }
 
 func TestTCP(t *testing.T) {
-	a := assert.New(t)
-	header := true
+	const header = true
+	a := assert.New(t, false)
 	server := initServer(a)
 
 	srvExit := make(chan struct{}, 1)
@@ -250,11 +250,12 @@ func TestTCP(t *testing.T) {
 	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
 
 	f1Method := make(chan struct{}, 1)
-	client.Send("f1", &inType{Age: 11}, func(result *outType) error {
+	err = client.Send("f1", &inType{Age: 11}, func(result *outType) error {
 		a.Equal(result.Age, 11)
 		f1Method <- struct{}{}
 		return nil
 	})
+	a.NotError(err)
 
 	<-f1Method
 	clientCancel()

@@ -8,13 +8,11 @@ import (
 	"math"
 	"testing"
 
-	"github.com/issue9/assert"
+	"github.com/issue9/assert/v2"
 )
 
 func TestNewCallback(t *testing.T) {
-	a := assert.New(t)
-
-	type f func()
+	a := assert.New(t, false)
 
 	a.Panic(func() {
 		newCallback(5)
@@ -51,7 +49,7 @@ func TestNewCallback(t *testing.T) {
 }
 
 func TestNewHandler(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	type f func()
 
@@ -101,7 +99,7 @@ func TestNewHandler(t *testing.T) {
 }
 
 func TestHandler_call(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	data := []*struct {
 		h      *handler
@@ -200,7 +198,7 @@ func TestHandler_call(t *testing.T) {
 }
 
 func TestCallback_call(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	str := []byte("str")
 	num := []byte("-1")
@@ -233,7 +231,7 @@ func TestCallback_call(t *testing.T) {
 		},
 
 		{ // 回调函数返回错误
-			c:    newCallback(func(i *int) error { return errors.New("teet") }),
+			c:    newCallback(func(i *int) error { return errors.New("test") }),
 			resp: &body{Result: (*json.RawMessage)(&num)},
 			err:  true,
 		},

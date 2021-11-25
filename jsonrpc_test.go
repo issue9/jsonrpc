@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/issue9/assert"
+	"github.com/issue9/assert/v2"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 )
 
 func TestID_Equal(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	v1 := &ID{isNumber: true}
 	v2 := &ID{isNumber: false}
@@ -41,7 +41,7 @@ func TestID_Equal(t *testing.T) {
 }
 
 func TestID_MarshalJSON(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	var id *ID
 	data, err := json.Marshal(id)
@@ -65,7 +65,7 @@ func TestID_MarshalJSON(t *testing.T) {
 }
 
 func TestID_UnmarshalJSON(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	var id = &ID{}
 	a.NotError(json.Unmarshal([]byte("0"), id))
@@ -101,7 +101,7 @@ func TestID_UnmarshalJSON(t *testing.T) {
 }
 
 func TestID_String(t *testing.T) {
-	a := assert.New(t)
+	a := assert.New(t, false)
 
 	id := &ID{alpha: "123"}
 	a.Equal(id.String(), "123")
