@@ -46,7 +46,9 @@ func (conn *Conn) Notify(method string, in interface{}) error {
 //
 // 发送数据 in 至服务，在获得返回数据时，调用 callback 进行处理。
 // callback 的原型如下：
-//  func(result interface{}) error
+//
+//	func(result interface{}) error
+//
 // 参数 result 必须为一个指针，表示返回的数据对象；且函数返回一个 error。
 func (conn *Conn) Send(method string, in, callback interface{}) error {
 	req, err := conn.server.request(conn.transport, false, method, in)
@@ -64,7 +66,7 @@ func (conn *Conn) Send(method string, in, callback interface{}) error {
 //
 // 处理 Send 之后的数据或是作为服务端运行都需要调用此函数运行服务。
 //
-// ctx 可以用于中断当前的服务。但是需要注意，可能会被 Transport.Read 阻塞而无法退出，
+// ctx 可以用于中断当前的服务。但是需要注意，可能会被 [Transport.Read] 阻塞而无法退出，
 // 所以在调用 cancel 之后，再下次对方有数据发送过来之后才能会退出。
 // 作为客户端需要下一次的服务端数据下发才能退出，
 // 而作为服务端需下一次的客户端请求才会真正退出。

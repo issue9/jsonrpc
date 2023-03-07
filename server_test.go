@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -16,6 +17,18 @@ var (
 	_ Transport = &httpClientTransport{}
 	_ Transport = &httpTransport{}
 )
+
+var uniqueID = make(chan string, 100)
+
+func init() {
+	go func() {
+		for i := 0; i < 1000000; i++ {
+			uniqueID <- strconv.Itoa(i)
+		}
+	}()
+}
+
+func idGenerator() string { return <-uniqueID }
 
 // 用于测试的数据类型
 type (
@@ -54,7 +67,7 @@ var (
 )
 
 func initServer(a *assert.Assertion) *Server {
-	srv := NewServer()
+	srv := NewServer(idGenerator)
 	a.NotNil(srv)
 
 	a.True(srv.Register("f1", f1))
@@ -223,7 +236,7 @@ func TestServer_response(t *testing.T) {
 
 func TestServer_Registers(t *testing.T) {
 	a := assert.New(t, false)
-	srv := NewServer()
+	srv := NewServer(idGenerator)
 	a.NotNil(srv)
 
 	a.NotPanic(func() {
@@ -233,7 +246,7 @@ func TestServer_Registers(t *testing.T) {
 		})
 	})
 
-	srv = NewServer()
+	srv = NewServer(idGenerator)
 	a.NotNil(srv)
 	a.Panic(func() {
 		srv.Registers(map[string]interface{}{
@@ -242,7 +255,7 @@ func TestServer_Registers(t *testing.T) {
 		})
 	})
 
-	srv = NewServer()
+	srv = NewServer(idGenerator)
 	a.NotNil(srv)
 	a.Panic(func() {
 		a.True(srv.Register("f1", f1))

@@ -31,7 +31,7 @@ func TestUDP(t *testing.T) {
 
 	clientT, err := NewUDPClientTransport(header, ":8089", "", time.Second)
 	a.NotError(err)
-	client := NewServer().NewConn(clientT, nil)
+	client := NewServer(idGenerator).NewConn(clientT, nil)
 	clientCtx, clientCancel := context.WithCancel(context.Background())
 	clientExit := make(chan struct{}, 1)
 	go func() {

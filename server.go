@@ -8,13 +8,11 @@ import (
 	"fmt"
 	"os"
 	"sync"
-
-	"github.com/issue9/unique"
 )
 
 // Server JSON RPC 服务实例
 type Server struct {
-	unique     *unique.Unique
+	unique     func() string
 	servers    sync.Map
 	matchers   []matcher
 	before     func(string) error
@@ -27,35 +25,35 @@ type matcher struct {
 }
 
 // NewServer 新的 Server 实例
-func NewServer() *Server {
+//
+// unique 用于生成唯一 ID 的方法。
+func NewServer(unique func() string) *Server {
 	return &Server{
-		unique:   unique.NewString(),
+		unique:   unique,
 		matchers: []matcher{},
 	}
 }
 
-func (s *Server) id() *ID {
-	return &ID{
-		alpha: s.unique.String(),
-	}
-}
+func (s *Server) id() *ID { return &ID{alpha: s.unique()} }
 
 // RegisterBefore 注册 Before 函数
 //
 // f 的原型如下：
-//  func(method string)(err error)
+//
+//	func(method string)(err error)
+//
 // method RPC 服务名；
-// 如果返回错误值，则会退出 RPC 调用，返回错误尽量采用 *Error 类型；
+// 如果返回错误值，则会退出 RPC 调用，返回错误尽量采用 [Error] 类型；
 //
 // NOTE: 如果多次调用，仅最后次启作用。
-func (s *Server) RegisterBefore(f func(method string) error) {
-	s.before = f
-}
+func (s *Server) RegisterBefore(f func(method string) error) { s.before = f }
 
 // Register 注册一个新的服务
 //
 // f 为处理服务的函数，其原型为以下方式：
-//  func(notify bool, params, result pointer) error
+//
+//	func(notify bool, params, result pointer) error
+//
 // 其中 notify 表示是否为通知类型的请求；params 为用户请求的对象；
 // result 为返回给用户的数据对象；error 则为处理出错是的返回值。
 // params 和 result 必须为指针类型。
@@ -75,7 +73,9 @@ func (s *Server) Register(method string, f interface{}) bool {
 // RegisterMatcher 注册服务名称通过函数判断的新服务
 //
 // m 为服务名称的匹配方法，其原型如下：
-//  func(method string) bool
+//
+//	func(method string) bool
+//
 // 如果服务名称能正确匹配则返回 true。
 //
 // 通过 RegisterMatcher 注册的服务，其权重要低于 Register 注册的服务，
@@ -105,9 +105,7 @@ func (s *Server) Registers(methods map[string]interface{}) {
 // ErrHandler 指定请求数据的错误处理函数
 //
 // 仅针对请求数据，多次调用会相互覆盖。
-func (s *Server) ErrHandler(h func(*Error)) {
-	s.errHandler = h
-}
+func (s *Server) ErrHandler(h func(*Error)) { s.errHandler = h }
 
 func (s *Server) read(t Transport) (*body, error) {
 	req := &body{}

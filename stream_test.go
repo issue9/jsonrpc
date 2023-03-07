@@ -238,8 +238,9 @@ func TestTCP(t *testing.T) {
 	raddr, err := net.ResolveTCPAddr("tcp", ":8989")
 	a.NotError(err)
 	conn, err := net.DialTCP("tcp", nil, raddr)
+	a.NotError(err).NotNil(conn)
 	clientT := NewSocketTransport(header, conn, time.Second)
-	client := NewServer().NewConn(clientT, nil)
+	client := NewServer(idGenerator).NewConn(clientT, nil)
 	clientCtx, clientCancel := context.WithCancel(context.Background())
 	clientExit := make(chan struct{}, 1)
 	go func() {

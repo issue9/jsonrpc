@@ -22,7 +22,7 @@ func NewWebsocketTransport(conn *websocket.Conn) Transport {
 
 func (s *websocketTransport) Read(v interface{}) error {
 	s.inMux.Lock()
-	s.inMux.Unlock()
+	defer s.inMux.Unlock()
 
 	return s.conn.ReadJSON(v)
 }
