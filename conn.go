@@ -68,7 +68,7 @@ func (conn *Conn) Send(method string, in, callback interface{}) error {
 //
 // 处理 Send 之后的数据或是作为服务端运行都需要调用此函数运行服务。
 //
-// ctx 可以用于中断当前的服务。但是需要注意，可能会被 Transport.Read 阻塞而无法退出，
+// ctx 可以用于中断当前的服务。但是需要注意，可能会被 [Transport.Read] 阻塞而无法退出，
 // 所以在调用 cancel 之后，再下次对方有数据发送过来之后才能会退出。
 // 作为客户端需要下一次的服务端数据下发才能退出，
 // 而作为服务端需下一次的客户端请求才会真正退出。

@@ -43,12 +43,10 @@ func (s *Server) id() *ID { return &ID{alpha: s.unique()} }
 //	func(method string)(err error)
 //
 // method RPC 服务名；
-// 如果返回错误值，则会退出 RPC 调用，返回错误尽量采用 *Error 类型；
+// 如果返回错误值，则会退出 RPC 调用，返回错误尽量采用 [Error] 类型；
 //
 // NOTE: 如果多次调用，仅最后次启作用。
-func (s *Server) RegisterBefore(f func(method string) error) {
-	s.before = f
-}
+func (s *Server) RegisterBefore(f func(method string) error) { s.before = f }
 
 // Register 注册一个新的服务
 //
@@ -107,9 +105,7 @@ func (s *Server) Registers(methods map[string]interface{}) {
 // ErrHandler 指定请求数据的错误处理函数
 //
 // 仅针对请求数据，多次调用会相互覆盖。
-func (s *Server) ErrHandler(h func(*Error)) {
-	s.errHandler = h
-}
+func (s *Server) ErrHandler(h func(*Error)) { s.errHandler = h }
 
 func (s *Server) read(t Transport) (*body, error) {
 	req := &body{}

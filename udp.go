@@ -51,8 +51,8 @@ func (conn *udp) Close() error {
 //
 // header 表示是否需要输出报头内容目前报头包含了长度和编码两个字段，
 // 如果不包含报头，则是一段合法的 JSON 内容。
-// connected 表示 conn 是否是有状态的，如果是调用 net.ListenUDP 生成的实例，是无状态的；
-// net.DialUDP 返回的则是有状态的连接。
+// connected 表示 conn 是否是有状态的，如果是调用 [net.ListenUDP] 生成的实例，是无状态的；
+// [net.DialUDP] 返回的则是有状态的连接。
 // timeout 指定了 udp 在无法读取数据时的超时时间。
 func NewUDPTransport(header bool, conn *net.UDPConn, connected bool, timeout time.Duration) Transport {
 	rw := newSocketStream(conn, timeout)
@@ -64,8 +64,8 @@ func NewUDPTransport(header bool, conn *net.UDPConn, connected bool, timeout tim
 
 // NewUDPServerTransport 声明用于服务的 UDP Transport 接口
 //
-// 这是对 NewUDPTransport 的二次封装，返回适用于服务端的接口实例，
-// 其中的 conn 参数由 net.ListenUDP 创建，而 connected 统一为 false。
+// 这是对 [NewUDPTransport] 的二次封装，返回适用于服务端的接口实例，
+// 其中的 conn 参数由 [net.ListenUDP] 创建，而 connected 统一为 false。
 // timeout 指定了 udp 在无法读取数据时的超时时间。
 func NewUDPServerTransport(header bool, addr string, timeout time.Duration) (Transport, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
@@ -83,8 +83,8 @@ func NewUDPServerTransport(header bool, addr string, timeout time.Duration) (Tra
 
 // NewUDPClientTransport 声明用于客户的 UDP Transport 接口
 //
-// 这是对 NewUDPTransport 的二次封装，返回适用于客户端的接口实例，
-// 其中的 conn 参数由 net.DialUDP 创建，而 connected 统一为 true。
+// 这是对 [NewUDPTransport] 的二次封装，返回适用于客户端的接口实例，
+// 其中的 conn 参数由 [net.DialUDP] 创建，而 connected 统一为 true。
 //
 // raddr 用于指定服务端地址；laddr 用于指定本地地址，可以为空值。
 // timeout 指定了 udp 在无法读取数据时的超时时间。

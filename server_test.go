@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -20,6 +21,16 @@ var (
 	_ Transport = &httpClientTransport{}
 	_ Transport = &httpTransport{}
 )
+
+var uniqueID = make(chan string, 100)
+
+func init() {
+	go func() {
+		for i := 0; i < 1000000; i++ {
+			uniqueID <- strconv.Itoa(i)
+		}
+	}()
+}
 
 // 用于测试的数据类型
 type (
