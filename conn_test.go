@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2020-2024 caixw
+//
 // SPDX-License-Identifier: MIT
 
 package jsonrpc
@@ -10,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/issue9/assert/v3"
+	"github.com/issue9/assert/v4"
 )
 
 func TestConn_Serve(t *testing.T) {

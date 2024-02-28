@@ -1,15 +1,19 @@
+// SPDX-FileCopyrightText: 2020-2024 caixw
+//
 // SPDX-License-Identifier: MIT
 
 package jsonrpc
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
 
-	"github.com/issue9/assert/v3"
+	"github.com/issue9/assert/v4"
+	"github.com/issue9/unique/v2"
 )
 
 var (
@@ -54,7 +58,10 @@ var (
 )
 
 func initServer(a *assert.Assertion) *Server {
-	srv := NewServer()
+	u := unique.NewString(10)
+	go u.Serve(context.Background())
+
+	srv := NewServer(u.String)
 	a.NotNil(srv)
 
 	a.True(srv.Register("f1", f1))
@@ -222,8 +229,11 @@ func TestServer_response(t *testing.T) {
 }
 
 func TestServer_Registers(t *testing.T) {
+	u := unique.NewString(10)
+	go u.Serve(context.Background())
+
 	a := assert.New(t, false)
-	srv := NewServer()
+	srv := NewServer(u.String)
 	a.NotNil(srv)
 
 	a.NotPanic(func() {
@@ -233,7 +243,7 @@ func TestServer_Registers(t *testing.T) {
 		})
 	})
 
-	srv = NewServer()
+	srv = NewServer(u.String)
 	a.NotNil(srv)
 	a.Panic(func() {
 		srv.Registers(map[string]interface{}{
@@ -242,7 +252,7 @@ func TestServer_Registers(t *testing.T) {
 		})
 	})
 
-	srv = NewServer()
+	srv = NewServer(u.String)
 	a.NotNil(srv)
 	a.Panic(func() {
 		a.True(srv.Register("f1", f1))

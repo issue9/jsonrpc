@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2020-2024 caixw
+//
 // SPDX-License-Identifier: MIT
 
 package jsonrpc
@@ -8,13 +10,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/issue9/assert/v3"
+	"github.com/issue9/assert/v4"
+	"github.com/issue9/unique/v2"
 )
 
 func TestUDP(t *testing.T) {
 	const header = true
 	a := assert.New(t, false)
 	server := initServer(a)
+
+	u := unique.NewString(10)
+	go u.Serve(context.Background())
 
 	srvExit := make(chan struct{}, 1)
 	srvCtx, srvCancel := context.WithCancel(context.Background())
@@ -31,7 +37,7 @@ func TestUDP(t *testing.T) {
 
 	clientT, err := NewUDPClientTransport(header, ":8089", "", time.Second)
 	a.NotError(err)
-	client := NewServer().NewConn(clientT, nil)
+	client := NewServer(u.String).NewConn(clientT, nil)
 	clientCtx, clientCancel := context.WithCancel(context.Background())
 	clientExit := make(chan struct{}, 1)
 	go func() {

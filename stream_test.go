@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2020-2024 caixw
+//
 // SPDX-License-Identifier: MIT
 
 package jsonrpc
@@ -11,7 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/issue9/assert/v3"
+	"github.com/issue9/assert/v4"
+	"github.com/issue9/unique/v2"
 )
 
 var _ Transport = &streamTransport{}
@@ -205,9 +208,9 @@ func TestStreamTransport_Write(t *testing.T) {
 	}
 	in, out := new(bytes.Buffer), new(bytes.Buffer)
 	transport := NewStreamTransport(true, in, out, nil)
-	a.NotNil(transport)
-	a.Error(transport.Write(&failedTester{Value: math.NaN()}))
-	a.NotError(transport.Close())
+	a.NotNil(transport).
+		Error(transport.Write(&failedTester{Value: math.NaN()})).
+		NotError(transport.Close())
 }
 
 func TestTCP(t *testing.T) {
@@ -215,11 +218,14 @@ func TestTCP(t *testing.T) {
 	a := assert.New(t, false)
 	server := initServer(a)
 
+	u := unique.NewString(10)
+	go u.Serve(context.Background())
+
 	srvExit := make(chan struct{}, 1)
 	srvCtx, srvCancel := context.WithCancel(context.Background())
 	var srv *Conn
 
-	go func() {
+	a.Go(func(a *assert.Assertion) {
 		l, err := net.Listen("tcp", ":8989")
 		a.NotError(err)
 		conn, err := l.Accept()
@@ -232,22 +238,22 @@ func TestTCP(t *testing.T) {
 		err = srv.Serve(srvCtx)
 		a.True(errors.Is(err, context.Canceled))
 		srvExit <- struct{}{}
-	}()
-	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
+	}).Wait(500 * time.Millisecond) // 等待服务启动完成
 
 	raddr, err := net.ResolveTCPAddr("tcp", ":8989")
 	a.NotError(err)
 	conn, err := net.DialTCP("tcp", nil, raddr)
+	a.NotError(err).NotNil(conn)
+
 	clientT := NewSocketTransport(header, conn, time.Second)
-	client := NewServer().NewConn(clientT, nil)
+	client := NewServer(u.String).NewConn(clientT, nil)
 	clientCtx, clientCancel := context.WithCancel(context.Background())
 	clientExit := make(chan struct{}, 1)
-	go func() {
+	a.Go(func(a *assert.Assertion) {
 		err := client.Serve(clientCtx)
 		a.True(errors.Is(err, context.Canceled))
 		clientExit <- struct{}{}
-	}()
-	time.Sleep(500 * time.Millisecond) // 等待服务启动完成
+	}).Wait(500 * time.Millisecond) // 等待服务启动完成
 
 	f1Method := make(chan struct{}, 1)
 	err = client.Send("f1", &inType{Age: 11}, func(result *outType) error {

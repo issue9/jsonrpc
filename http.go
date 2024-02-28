@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2020-2024 caixw
+//
 // SPDX-License-Identifier: MIT
 
 package jsonrpc
@@ -6,7 +8,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -63,7 +64,7 @@ func (h *httpClientTransport) Write(v interface{}) error {
 }
 
 func (h *httpClientTransport) Read(v interface{}) error {
-	data, err := ioutil.ReadAll(h.resp.Body)
+	data, err := io.ReadAll(h.resp.Body)
 	if err != nil {
 		return err
 	}

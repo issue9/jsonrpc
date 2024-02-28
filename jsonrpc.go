@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2020-2024 caixw
+//
 // SPDX-License-Identifier: MIT
 
 // Package jsonrpc 实现简单的 JSON RPC 2.0
